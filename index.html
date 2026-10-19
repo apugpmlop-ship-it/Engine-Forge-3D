@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+<meta name="theme-color" content="#0b0f14">
+<title>Engine Forge 3D</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;background:#0b0f14;color:#e6edf3;font:15px -apple-system,system-ui,sans-serif;overscroll-behavior:none}
+[hidden]{display:none!important}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;z-index:1}
+button{background:#1f2937;color:#e6edf3;border:1px solid #374151;border-radius:12px;padding:11px 13px;font:inherit;font-size:14px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:.1s;touch-action:manipulation}
+button:active{transform:scale(.94);background:#2a3444}
+button.on{background:#14532d;border-color:#35ff7a;box-shadow:0 0 0 1px #35ff7a inset}
+button.warn{background:#7f1d1d;border-color:#ef4444}
+button.toggled{background:#1e40af;border-color:#3b82f6;box-shadow:0 0 0 2px #3b82f6 inset}
+#top{position:fixed;left:0;right:0;top:0;display:flex;gap:6px;padding:calc(6px + env(safe-area-inset-top,0px)) 6px 6px;align-items:center;background:linear-gradient(#0b0f14ee,#0b0f14aa,transparent);z-index:8}
+#top b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#top .sp{flex:1}
+#top button{padding:9px 11px;font-size:15px}
+#data{position:fixed;left:6px;right:6px;top:calc(54px + env(safe-area-inset-top,0px));background:#0f172ae6;border:1px solid #2a3444;border-radius:12px;padding:6px 10px;font:11px ui-monospace,monospace;z-index:7;display:grid;grid-template-columns:repeat(4,1fr);gap:3px 10px;max-width:540px;margin:0 auto;pointer-events:none}
+#data>div{display:flex;justify-content:space-between;gap:4px}
+#data .lbl{color:#9aa4b2;font-size:10px}
+#data .ok{color:#35ff7a}#data .warn{color:#fbbf24}#data .bad{color:#ff4d4d}
+#data .x{display:none}#data.full .x{display:flex}#blog,#bd,#bs{display:none}
+#log div:nth-last-child(n+5){display:none}body.dfull #log,body.dfull #cams{top:calc(176px + env(safe-area-inset-top,0px))}
+@media(max-width:520px){#ttl{display:none}}#top button{padding:8px 10px}
+#cpan{position:fixed;right:6px;top:calc(410px + env(safe-area-inset-top,0px));z-index:7;width:42px;height:42px;padding:0;font-size:16px}
+#pan{display:none;position:fixed;left:6px;top:calc(50% - 60px);display:flex;flex-direction:column;align-items:center;gap:4px;z-index:7;opacity:.85}#pan div{display:flex;gap:4px}#pan button{width:40px;height:40px;padding:0;font-size:15px}
+#menu-h{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:10px;padding:10px 14px;font-size:18px}
+#log{position:fixed;left:8px;top:calc(122px + env(safe-area-inset-top,0px));font:11px ui-monospace,monospace;pointer-events:none;max-width:80%;z-index:6}
+#log div{background:#000b;padding:3px 8px;margin-bottom:3px;border-radius:6px}
+.g{color:#35ff7a}.e{color:#ff6b6b}.w{color:#fbbf24}.b{color:#38bdf8}
+#bot{position:fixed;left:0;right:0;bottom:0;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,#0b0f14cc 20%,#0b0f14ee);z-index:8}
+#tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:6px}
+#tabs button{padding:12px 2px;font-size:12px;font-weight:600}
+#trayWrap{display:flex;align-items:center;gap:4px;margin-bottom:6px}
+#trayWrap .arr{background:#1f2937;border:1px solid #374151;border-radius:10px;padding:11px 7px;font-size:15px;flex:0 0 auto;min-width:34px}
+#tray{display:flex;gap:5px;overflow-x:auto;overflow-y:hidden;padding:3px 2px 7px;-webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-x;overscroll-behavior-x:contain;flex:1}
+#tray::-webkit-scrollbar{display:none}
+#tray button{flex:0 0 auto;font-size:12px;padding:9px 10px;min-height:38px}
+#test .row{display:flex;gap:6px;margin-bottom:6px;align-items:center}
+#test .row button{flex:1;padding:14px 6px;font-size:14px;font-weight:700}
+#cat2{flex:1;min-width:0;background:#1f2937;color:#e6edf3;border:1px solid #374151;border-radius:12px;padding:12px;font:inherit}
+#test .row canvas{flex:0 0 95px;width:95px;height:95px;background:#0f172a;border-radius:10px}
+#test .info{flex:1;min-width:0}
+#test.hfl .fl{display:none}#test.hctl .ctl,#test.hctl #gb,#test.hctl #cl{display:none}
+#tbar button{padding:8px 4px;font-size:12px}
+#test .row canvas#fl{flex:1 1 auto;width:100%;max-width:100%;height:70px;background:transparent}
+#gb{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+#gb button{padding:10px 3px;font-size:13px;font-weight:700;min-height:40px}
+#menu,#final,#tune,#diag,#hmenu,#logpanel{position:fixed;inset:0;background:#0b0f14fa;z-index:20;padding:18px 14px calc(18px + env(safe-area-inset-bottom,0px));overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;display:flex;flex-direction:column;align-items:center;gap:8px}
+#menu{z-index:22}
+#hmenu{z-index:24}
+.credits{width:100%;max-width:440px;text-align:center;font-size:13px;line-height:1.7}.credits a{display:block;background:#1f2937;border:1px solid #374151;border-radius:12px;padding:12px;margin:6px 0;color:#7dd3fc;text-decoration:none}
+#logpanel{z-index:30;align-items:stretch;padding:14px 10px calc(14px + env(safe-area-inset-bottom,0px))}
+#menu h1{margin:4px 0 0;font-size:22px}
+#menu .g2{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:520px}
+#menu .g2 button{padding:10px 14px;font-size:14px}
+#go{background:#14532d;border-color:#35ff7a;font-size:16px;padding:14px 28px;min-height:52px;width:100%;max-width:440px}
+#garage{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;max-width:600px;width:100%;touch-action:pan-y}
+.cell{background:#131a24;border:1px solid #2a3444;border-radius:12px;padding:10px;text-align:left;position:relative;min-height:88px;cursor:pointer}
+.cell .t{font-weight:700;font-size:14px;margin-bottom:4px;padding-right:22px}
+.cell .s{font-size:11px;color:#9aa4b2}
+.cell .b{font-size:10px;color:#35ff7a;margin-top:3px}
+.cell .del{position:absolute;top:6px;right:6px;background:#3a1a1a;border-color:#7f1d1d;padding:4px 8px;font-size:11px;border-radius:6px;min-height:28px}
+.cell.add{display:flex;align-items:center;justify-content:center;font-size:32px;color:#35ff7a;border-style:dashed}
+.cell.repair .t{color:#fbbf24}.cell.cat .t{color:#f97316}
+#tut{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(180px + env(safe-area-inset-bottom,0px));background:#0f172af5;border:1px solid #35ff7a;border-radius:12px;padding:10px 14px;font-size:12px;max-width:90%;z-index:9;box-shadow:0 8px 28px #000c;text-align:center;line-height:1.4;pointer-events:none}
+#tut b{color:#35ff7a}
+#prg{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:10}
+#cams{position:fixed;right:6px;top:calc(122px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:5px;z-index:7}
+#cams button{padding:9px;font-size:14px;width:42px;height:42px}
+h2{color:#35ff7a;margin:0;font-size:20px}
+.sub{color:#9aa4b2;font-size:12px;margin-bottom:6px}
+.stats,.tuneBox,#d-list{background:#131a24;border:1px solid #2a3444;border-radius:14px;padding:12px 16px;width:100%;max-width:440px;display:grid;grid-template-columns:1fr auto;gap:8px 14px;font-size:13px}
+.stats .k{color:#9aa4b2}
+.stats .v{color:#35ff7a;font-weight:700;font-family:ui-monospace,monospace;text-align:right}
+.tuneBox{display:flex;flex-direction:column;gap:10px}
+.tuneBox label{display:flex;flex-direction:column;gap:5px;font-size:13px}
+.tuneBox label span{color:#35ff7a;font-family:ui-monospace,monospace;font-size:12px}
+.tuneBox input[type=range]{width:100%;height:34px;-webkit-appearance:none;background:transparent}
+.tuneBox input[type=range]::-webkit-slider-runnable-track{height:8px;background:#1f2937;border-radius:4px;border:1px solid #374151}
+.tuneBox input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;background:#35ff7a;border-radius:50%;margin-top:-10px;border:2px solid #0b0f14}
+.tuneBox select{background:#1f2937;color:#e6edf3;border:1px solid #374151;border-radius:8px;padding:8px;font:inherit;font-size:13px;min-height:40px}
+.chk{display:flex;align-items:center;gap:10px;background:#0b0f14;border:1px solid #374151;border-radius:10px;padding:10px 14px;cursor:pointer}
+.chk input{width:22px;height:22px;accent-color:#35ff7a}
+.chk label{font-size:13px;flex:1;cursor:pointer}
+#dynoGraph{background:#0f172a;border:1px solid #2a3444;border-radius:14px;padding:8px;width:100%;max-width:440px}
+#diag .item{background:#131a24;border:1px solid #2a3444;border-radius:10px;padding:10px 14px;width:100%;max-width:440px;text-align:left;font-size:13px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+#diag .item.bad{border-color:#ef4444}
+#diag .item.warn{border-color:#fbbf24}
+#diag .item.ok{border-color:#35ff7a}
+#diag .item .info{flex:1}
+#diag .item .s{color:#9aa4b2;font-size:11px;margin-top:2px}
+#diag .item .replaceBtn{background:#7f1d1d;border-color:#ef4444;font-size:12px;padding:8px 12px;min-height:38px}
+#loglist{flex:1;background:#0a0e14;border:1px solid #2a3444;border-radius:12px;padding:8px;font:11px ui-monospace,monospace;overflow-y:auto;width:100%;-webkit-overflow-scrolling:touch;touch-action:pan-y;min-height:200px}
+#loglist .entry{padding:4px 6px;border-bottom:1px solid #1a2230;word-break:break-word;white-space:pre-wrap}
+#loglist .entry.info{color:#9aa4b2}
+#loglist .entry.warn{color:#fbbf24}
+#loglist .entry.err{color:#ff6b6b;background:#2a0a0a;border-radius:4px}
+#loglist .entry.ok{color:#35ff7a}
+#loglist .entry .time{color:#555;font-size:10px;margin-right:6px}
+#fireOverlay{position:fixed;inset:0;pointer-events:none;z-index:12;background:radial-gradient(ellipse at center,transparent 40%,#ff440066 100%);animation:firePulse 1.5s infinite}
+@keyframes firePulse{0%,100%{opacity:.4}50%{opacity:.8}}
+#fireBtn{position:fixed;bottom:calc(190px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:13;padding:16px 28px;font-size:18px;font-weight:700;background:#dc2626;border-color:#fca5a5;color:#fff;box-shadow:0 0 20px #dc2626}
+@media (max-width:380px){#data{grid-template-columns:repeat(3,1fr)}#tabs button{font-size:12px;padding:10px 3px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="top"><b id="ttl">—</b><span class="sp"></span><button id="blog">📋</button><button id="bd">🔍</button><button id="bdx">📊</button><button id="bx">👁</button><button id="ba">⚡</button><button id="brm">🔩</button><button id="bs">⚙</button><button id="bm">☰</button></div>
+<div id="cams"><button data-c="orb" class="on">🔄</button><button data-c="top">⬆</button><button data-c="side">➡</button><button data-c="front">⬇</button><button data-c="rot90">↻</button><button data-c="reset">⌂</button></div>
+<button id="cpan">✋</button>
+<div id="data">
+<div><span class="lbl">RPM</span><span id="d-rpm" class="ok">0</span></div>
+<div><span class="lbl">км/ч</span><span id="d-spd" class="ok">0</span></div>
+<div><span class="lbl">Передача</span><span id="d-gear" class="ok">N</span></div>
+<div><span class="lbl">ОЖ</span><span id="d-cool" class="ok">20°</span></div>
+<div><span class="lbl">Масло</span><span id="d-oil" class="ok">20°</span></div>
+<div class="x"><span class="lbl">Давл</span><span id="d-davl" class="ok">0</span></div>
+<div class="x"><span class="lbl">Нм</span><span id="d-tq" class="ok">0</span></div>
+<div><span class="lbl">л.с.</span><span id="d-hp" class="ok">0</span></div>
+<div class="x"><span class="lbl">Воздух</span><span id="d-amb" class="ok">0</span></div><div class="x"><span class="lbl">АКБ В</span><span id="d-volt" class="ok">0</span></div><div class="x"><span class="lbl">Нагр.</span><span id="d-load" class="ok">0</span></div><div><span class="lbl">Здоровье</span><span id="d-hlt" class="ok">100</span></div>
+</div>
+<div id="log"></div><div id="tut" hidden></div><div id="prg" hidden></div>
+<div id="bot">
+<div id="tabs"><button id="t1" class="on">🔧 Сборка</button><button id="tn">⚙ Настройка</button><button id="t2">🏁 Тест</button><button id="bdis">🔩 Разборка</button><button id="place">✔ Поставить</button></div>
+<div id="trayWrap"><button class="arr" id="arrL">‹</button><div id="tray"></div><button class="arr" id="arrR">›</button></div>
+<div id="test" hidden>
+<div class="row" id="tbar"><button id="tg-fl">⛽ Жидкости ▾</button><button id="tg-ctl">🎛 Управление ▾</button><button id="tg-min">▁ Минимум</button></div>
+<div class="row"><canvas id="sp" width="95" height="95"></canvas><canvas id="tc" width="95" height="95"></canvas>
+<div class="info"><button id="st" style="width:100%;margin-bottom:5px">▶ СТАРТ</button><div id="gb"></div></div></div>
+<div class="row"><button id="cl">🦶 СЦЕП</button><button id="gas">⛽ ГАЗ</button></div>
+<div class="row ctl"><select id="cat2"><option value="fire">🔥 Пожар</option><option value="belt_break">⛓ Обрыв ремня ГРМ</option><option value="oil_leak">🛢 Пробит поддон</option><option value="head_blow">💥 Пробита ГБЦ</option><option value="piston_burn">🔩 Прогорел поршень</option><option value="crank_seize">⚙ Заклинил коленвал</option><option value="clutch_burn">🦶 Сгорело сцепление</option><option value="gear_strip">⚙ Разрушена КПП</option><option value="rad_burst">🌡 Лопнул радиатор</option><option value="overheat">♨ Перегрев</option><option value="pump_fail">💧 Клинит помпу</option><option value="alt_fail">🔋 Сгорел генератор</option><option value="battery_dead">🪫 Сел аккумулятор</option><option value="wiring">⚡ Сгорели провода</option><option value="spark_fail">🕯 Свечи</option><option value="injector_fail">💉 Форсунки</option></select><button id="boom2" style="flex:0 0 auto;padding:12px 16px">💥 Устроить</button><button id="nosb" hidden style="flex:0 0 auto;padding:12px 14px">💨 NOS</button></div>
+<div class="row fl"><canvas id="fl" width="330" height="70" style="flex:1;max-width:100%"></canvas></div>
+<div class="row fl"><button id="f-fuel">⛽ +10л</button><button id="f-oil">🛢 +1л</button><button id="f-cool">💧 +1л</button><button id="f-all">🧰 Всё</button><button id="f-drain">⬇ Слить</button></div>
+</div></div>
+<div id="menu"><button id="menu-h">☰</button><h1>⚙️ ENGINE FORGE 3D</h1><div class="sub">Сборка · тюнинг · ремонт · катастрофы</div><div class="g2" id="me"></div><div class="g2" id="mg"></div><button id="go">🔧 Начать</button><div class="g2"><button id="m-set">☰ Настройки</button><button id="m-cred" hidden>ℹ Титры</button></div><div style="margin-top:6px;font-size:11px;color:#9aa4b2">Мои двигатели</div><div id="garage"></div></div>
+<div id="hmenu" hidden><h2>☰ Меню</h2><div class="sub">Настройки игры и титры</div>
+<div class="tuneBox">
+<label>🔊 Громкость <span id="h-vol-v">80%</span><input type="range" id="h-vol" min="0" max="100" value="80"></label>
+<label>🎮 Графика<select id="h-gfx"><option value="low">Низкая</option><option value="med">Средняя</option><option value="high" selected>Высокая</option><option value="ultra">🔥 УЛЬТРА</option></select></label>
+</div>
+<button id="h-garage" style="width:100%;max-width:440px">🔧 Гараж / новый двигатель</button>
+<div class="g2" style="width:100%;max-width:440px"><button id="h-tune" style="flex:1">🏎 Двигатель</button><button id="h-diag" style="flex:1">🔩 Разборка</button><button id="h-log" style="flex:1">📋 Логи</button></div>
+<div class="credits"><div style="font-size:18px;font-weight:700;margin-top:8px">⚙️ ENGINE FORGE 3D</div>
+<div>Создатель: <b>AP4GPM</b></div><div>Компания создателя: <b>JODIK</b></div>
+<a href="https://dalink.to/ap4gpm" target="_blank" rel="noopener">💛 Поддержать — dalink.to/ap4gpm</a>
+<a href="https://t.me/JODIK_1" target="_blank" rel="noopener">✈ Telegram — t.me/JODIK_1</a>
+<a href="http://tiktok.com/@jodik_offisal" target="_blank" rel="noopener">🎵 TikTok — @jodik_offisal</a></div>
+<button id="h-close" style="width:100%;max-width:440px">✕ Закрыть</button></div>
+<div id="logpanel" hidden><h2>📋 Логи</h2><div class="sub">Все события</div><div id="loglist"></div><div style="display:flex;gap:6px;width:100%;max-width:440px"><button id="logclear" style="flex:1">🗑 Очистить</button><button id="logcopy" style="flex:1">📋 Копировать</button><button id="logclose" style="flex:1">✕ Закрыть</button></div></div>
+<div id="final" hidden><h2>🏆 Готово!</h2><div class="sub" id="f-sub">—</div><div class="stats" id="f-stats"></div><button id="f-close">✕ Закрыть</button></div>
+<div id="tune" hidden><h2>🏎 Настройка</h2><div class="sub" id="t-sub">—</div>
+<div class="tuneBox">
+<div id="t-stats" class="sub" style="grid-column:1/-1;text-align:left;line-height:1.55;background:#0f172a;border:1px solid #374151;border-radius:10px;padding:10px"></div>
+<div class="chk"><input type="checkbox" id="t-dmg" checked><label for="t-dmg">💥 Поломки и износ (выключи — двигатель не ломается)</label></div>
+<div class="chk"><input type="checkbox" id="t-repair"><label for="t-repair">🛠 Ремонт (двигатель приходит с недостающими деталями)</label></div>
+<div class="chk"><input type="checkbox" id="t-cat"><label for="t-cat">💥 Катастрофа при старте (случайная)</label></div>
+<label>Тип катастрофы
+<select id="t-cattype">
+<option value="random">🎲 Случайная</option>
+<option value="fire">🔥 Пожар</option>
+<option value="belt_break">⛓ Обрыв ремня ГРМ</option>
+<option value="oil_leak">🛢 Утечка масла (поддон)</option>
+<option value="head_blow">💥 Пробитие ГБЦ</option>
+<option value="rad_burst">🌡 Разрыв радиатора</option>
+<option value="wiring">⚡ Сгорели провода</option>
+<option value="pump_fail">💧 Клинит помпу</option>
+<option value="alt_fail">🔋 Генератор</option>
+<option value="spark_fail">🕯 Свечи</option>
+<option value="injector_fail">💉 Форсунки</option>
+</select></label>
+<label>Сезон<select id="t-season"><option value="summer">☀ Лето</option><option value="winter">❄ Зима</option><option value="autumn">🍂 Осень</option><option value="night">🌙 Ночь</option></select></label>
+<label>Турбо <span id="t-boost-v">0.0 бар</span><input type="range" id="t-boost" min="0" max="200" value="0"></label>
+<label>Угол зажигания <span id="t-adv-v">0°</span><input type="range" id="t-adv" min="-10" max="25" value="0"></label>
+<label>Смесь <span id="t-mix-v">14.7:1</span><input type="range" id="t-mix" min="105" max="165" value="147"></label>
+<label>Ограничитель <span id="t-lim-v">6500</span><input type="range" id="t-lim" min="4500" max="10000" value="6500" step="100"></label>
+<label>Сжатие <span id="t-cr-v">10.0:1</span><input type="range" id="t-cr" min="80" max="135" value="100"></label>
+<label>Вес <span id="t-mass-v">1200 кг</span><input type="range" id="t-mass" min="700" max="2000" value="1200" step="50"></label>
+<div class="sub" style="grid-column:1/-1">Меньше вес и радиус колеса — быстрее разгон. Больше главная пара — быстрее разгон, но ниже максималка.</div>
+<label>Главная пара <span id="t-fd-v">4.1</span><input type="range" id="t-fd" min="28" max="58" value="41"></label>
+<label>Радиус колеса <span id="t-wr-v">31 см</span><input type="range" id="t-wr" min="26" max="38" value="31"></label>
+<label>Холостой ход <span id="t-idle-v">800</span><input type="range" id="t-idle" min="600" max="1300" step="50" value="800"></label>
+<label>Отклик газа <span id="t-resp-v">4</span><input type="range" id="t-resp" min="1" max="12" value="4"></label>
+<label>Термостат (открытие) <span id="t-th-v">85°</span><input type="range" id="t-th" min="70" max="100" value="85"></label>
+<label>Распредвалы <span id="t-cam-v">стоковые</span><input type="range" id="t-cam" min="0" max="3" value="0"></label>
+<label>Выхлоп <span id="t-exh-v">стоковый</span><input type="range" id="t-exh" min="0" max="3" value="0"></label>
+<label>Воздушный фильтр <span id="t-air-v">стоковый</span><input type="range" id="t-air" min="0" max="2" value="0"></label>
+<label>Прошивка ЭБУ <span id="t-ecu-v">сток</span><input type="range" id="t-ecu" min="0" max="3" value="0"></label>
+<label>Шины <span id="t-tire-v">обычные</span><input type="range" id="t-tire" min="0" max="3" value="0"></label>
+<label>Дифференциал <span id="t-lsd-v">открытый</span><input type="range" id="t-lsd" min="0" max="2" value="0"></label>
+<div class="chk"><input type="checkbox" id="t-nos"><label for="t-nos">💨 Закись азота NOS (кнопка в «Тест», +35% на 4 с)</label></div>
+<label>Температура воздуха <span id="t-amb-v">25°</span><input type="range" id="t-amb" min="-30" max="42" value="25"></label>
+<div style="display:flex;gap:6px;grid-column:1/-1"><button id="t-warm" style="flex:1">♨ Прогреть до 85°</button><button id="t-cool" style="flex:1">❄ Остудить</button></div>
+<label>Масло<select id="t-oil"><option value="5">5W-30</option><option value="10" selected>10W-40</option><option value="15">15W-50</option></select></label>
+<label>Топливо<select id="t-fuel"><option value="92">АИ-92</option><option value="95" selected>АИ-95</option><option value="98">АИ-98</option><option value="100">АИ-100</option></select></label>
+</div>
+<div id="dynoGraph"><canvas id="dyno" width="400" height="140" style="width:100%;height:auto"></canvas></div>
+<div class="stats" id="t-preview"></div>
+<button id="t-close">✕ Закрыть</button></div>
+<div id="diag" hidden><h2>🔩 Разборка</h2><div class="sub">Выбери деталь → «Открутить и снять» → зажми красные точки. Деталь под другой сначала освободи (блок — последним).</div><div id="d-list"></div><button id="d-recheck">🔄 Перепроверить</button><button id="d-close">✕</button></div>
+<div id="fireOverlay" hidden></div><button id="fireBtn" hidden>🚨 ПОТУШИТЬ</button>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const T=THREE,PI=Math.PI,cos=Math.cos,sin=Math.sin;
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const R=.35,LR=1.15,SP=.95;let FINAL_DRIVE=4.1,WHEEL_R=0.31;
+const LOGS=[];
+function addLog(type,msg){const time=new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit',second:'2-digit'});LOGS.push({type,msg:String(msg),time});if(LOGS.length>120)LOGS.shift();renderLogs()}
+function renderLogs(){const el=$('#loglist');if(!el)return;el.innerHTML=LOGS.slice(-50).map(l=>'<div class="entry '+l.type+'"><span class="time">'+l.time+'</span>'+l.msg+'</div>').join('');el.scrollTop=el.scrollHeight}
+window.addEventListener('error',e=>addLog('err','JS: '+(e.message||'?')+' @'+(e.lineno||'')));
+let TUNE={boost:0,adv:0,mix:14.7,lim:6500,cr:10,mass:1200,oil:10,fuel:95,fd:4.1,wr:31,idle:800,resp:4},MASS=1200;
+const RT=[0,3.5,2.05,1.4,1.0,0.78];let SEASON='summer';
+const SEASON_DATA={summer:{name:'Лето',temp:25,coldStart:0,wear:1},winter:{name:'Зима',temp:-15,coldStart:1.8,wear:1.4},autumn:{name:'Осень',temp:8,coldStart:1.2,wear:1.2},night:{name:'Ночь',temp:12,coldStart:.5,wear:1}};var SEASON_DEF={};for(var _k in SEASON_DATA)SEASON_DEF[_k]=SEASON_DATA[_k].temp;
+const ENG={R4:{n:4,v:0,th:[0,PI,PI,0],mx:6500,c:[0x6b7480,0x9aa3ad,0x1d4ed8],nm:'R4 2.0',disp:2.0,tqPk:200,tqRpm:4000,hp:150,redline:6800},V6:{n:6,v:1,a:PI/6,th:[0,2.094,4.189],mx:7000,c:[0x4a5058,0xb0b6bd,0xc81e1e],nm:'V6 3.5',disp:3.5,tqPk:340,tqRpm:4800,hp:280,redline:7200},V8:{n:8,v:1,a:PI/4,th:[0,1.571,4.712,PI],mx:6800,c:[0x23272d,0x8d949c,0x15171a],nm:'V8 5.0',disp:5.0,tqPk:520,tqRpm:4200,hp:450,redline:7200},V12:{n:12,v:1,a:PI/12,th:[0,.524,1.047,1.571,2.094,2.618],mx:8500,c:[0x1a1d21,0x8a9099,0xdc2626],nm:'V12 6.5',disp:6.5,tqPk:690,tqRpm:6500,hp:780,redline:8800},B4:{n:4,v:1,a:PI/2,th:[0,PI,PI,0],mx:6800,c:[0x4d5560,0x9aa3ad,0x22c55e],nm:'B4 2.0',disp:2.0,tqPk:220,tqRpm:3800,hp:160,redline:7000},R6:{n:6,v:0,th:[0,2.094,4.189,PI,5.236,1.047],mx:7500,c:[0x555c66,0xa0a8b2,0x0ea5e9],nm:'R6 3.0',disp:3.0,tqPk:320,tqRpm:4500,hp:280,redline:7800},
+R3:{n:3,v:0,th:[0,2.094,4.189],mx:6300,c:[0x6b7480,0xb0b6bd,0xf59e0b],nm:'R3 1.0T',disp:1.0,tqPk:170,tqRpm:3200,hp:120,redline:6600},
+R5:{n:5,v:0,th:[0,2.513,5.027,1.257,3.770],mx:7000,c:[0x444b55,0xa0a8b2,0x94a3b8],nm:'R5 2.5T',disp:2.5,tqPk:420,tqRpm:3800,hp:340,redline:7200},
+B6:{n:6,v:1,a:PI/2,th:[0,2.094,4.189],mx:7800,c:[0x3b434d,0x9aa3ad,0xef4444],nm:'B6 3.8',disp:3.8,tqPk:440,tqRpm:5200,hp:400,redline:8000},
+V10:{n:10,v:1,a:.628,th:[0,1.257,2.513,3.770,5.027],mx:8300,c:[0x1f2328,0x8d949c,0xfacc15],nm:'V10 5.2',disp:5.2,tqPk:560,tqRpm:6000,hp:640,redline:8600},
+V16:{n:16,v:1,a:PI/4,th:[0,.785,1.571,2.356,3.142,3.927,4.712,5.498],mx:7600,c:[0x14171b,0xb0b6bd,0x7c3aed],nm:'V16 8.0',disp:8.0,tqPk:1100,tqRpm:5000,hp:1000,redline:7800}};
+
+const rd=new T.WebGLRenderer({canvas:$('#c'),antialias:true,powerPreference:'high-performance'});
+rd.setPixelRatio(Math.min(devicePixelRatio,1.5));
+rd.toneMapping=T.ACESFilmicToneMapping;rd.toneMappingExposure=1.2;rd.shadowMap.enabled=true;rd.shadowMap.type=T.PCFSoftShadowMap;rd.outputEncoding=T.sRGBEncoding;
+const sc=new T.Scene();sc.background=new T.Color(0x0a1018);sc.fog=new T.Fog(0x0a1018,28,75);
+const cam=new T.PerspectiveCamera(42,1,.1,100);
+
+/* Окружение: стены далеко + предметы */
+(function(){
+const floor=new T.Mesh(new T.CircleGeometry(20,24),new T.MeshStandardMaterial({color:0x1a2230,metalness:.3,roughness:.75}));
+floor.rotation.x=-PI/2;floor.position.y=-1.65;sc.add(floor);
+floor.receiveShadow=true;const gr=new T.GridHelper(32,32,0x2b3a4d,0x1b2633);gr.position.y=-1.64;sc.add(gr);
+const wallM=new T.MeshStandardMaterial({color:0x121820,metalness:.1,roughness:.9});
+var backW=new T.Mesh(new T.BoxGeometry(48,9,.4),wallM);backW.position.set(0,2.8,-20);sc.add(backW);
+var leftW=new T.Mesh(new T.BoxGeometry(.4,9,40),wallM);leftW.position.set(-22,2.8,0);sc.add(leftW);
+var rightW=new T.Mesh(new T.BoxGeometry(.4,9,40),wallM);rightW.position.set(22,2.8,0);sc.add(rightW);
+const winM=new T.MeshBasicMaterial({color:0x5a8aaa});
+for(let i=-3;i<=3;i++){const w=new T.Mesh(new T.PlaneGeometry(3.5,2),winM);w.position.set(i*5.5,3.8,-19.7);sc.add(w)}
+const shelfM=new T.MeshStandardMaterial({color:0x2a3340,metalness:.4,roughness:.6});
+const toolM=new T.MeshStandardMaterial({color:0x555c66,metalness:.7,roughness:.4});
+const bench=new T.Mesh(new T.BoxGeometry(2.8,.12,1),shelfM);bench.position.set(-7.5,-.95,3.5);sc.add(bench);
+var box1=new T.Mesh(new T.BoxGeometry(.5,.25,.3),toolM);box1.position.set(-8,-.7,3.5);sc.add(box1);
+var wrench=new T.Mesh(new T.CylinderGeometry(.1,.1,.35,8),new T.MeshStandardMaterial({color:0xc9a227,metalness:.8,roughness:.3}));wrench.rotation.z=PI/2;wrench.position.set(-7,-.7,3.6);sc.add(wrench);
+for(let i=0;i<3;i++){const sh=new T.Mesh(new T.BoxGeometry(2.2,.06,.7),shelfM);sh.position.set(8.5,-.5+i*.65,4.5);sc.add(sh)}
+var barrel=new T.Mesh(new T.CylinderGeometry(.35,.35,.8,10),new T.MeshStandardMaterial({color:0x3a4a2a,metalness:.4,roughness:.5}));barrel.position.set(-9.5,-1.25,-2);sc.add(barrel);
+var can=new T.Mesh(new T.BoxGeometry(.3,.45,.2),new T.MeshStandardMaterial({color:0xcc4400,metalness:.3,roughness:.6}));can.position.set(-8.8,-1.4,-1.6);sc.add(can);
+var cabinet=new T.Mesh(new T.BoxGeometry(1.1,1.8,.5),new T.MeshStandardMaterial({color:0x1a3040,metalness:.4,roughness:.5}));cabinet.position.set(9.5,.25,-5);sc.add(cabinet);
+const bldM=new T.MeshStandardMaterial({color:0x151c28,metalness:.15,roughness:.85});
+for(let i=0;i<6;i++){const h=4+Math.random()*7,b=new T.Mesh(new T.BoxGeometry(2.5+Math.random()*2,h,2),bldM);const a=i/6*PI*2;b.position.set(Math.cos(a)*35,h/2-1.65,Math.sin(a)*35);sc.add(b)}
+
+// Больше предметов гаража
+var tireM=new T.MeshStandardMaterial({color:0x1a1a1a,roughness:0.9,metalness:0.1});
+var tire1=new T.Mesh(new T.TorusGeometry(0.55,0.18,8,16),tireM);tire1.position.set(-11,-1.1,2);tire1.rotation.y=0.3;sc.add(tire1);
+var tire2=new T.Mesh(new T.TorusGeometry(0.55,0.18,8,16),tireM);tire2.position.set(-11.3,-1.1,3.2);tire2.rotation.y=-0.2;sc.add(tire2);
+var crate=new T.Mesh(new T.BoxGeometry(1.2,0.8,0.9),new T.MeshStandardMaterial({color:0x6b5344,roughness:0.8,metalness:0.1}));crate.position.set(11,-1.2,2);sc.add(crate);
+var jack=new T.Mesh(new T.BoxGeometry(0.8,0.25,0.4),new T.MeshStandardMaterial({color:0xb91c1c,metalness:0.6,roughness:0.4}));jack.position.set(-6,-1.5,-4);sc.add(jack);
+var cone=new T.Mesh(new T.CylinderGeometry(0.15,0.25,0.5,8),new T.MeshStandardMaterial({color:0xf97316,roughness:0.6}));cone.position.set(6,-1.35,-8);sc.add(cone);
+for(let i=-1;i<=1;i++){const l=new T.PointLight(0xfff0dd,.5,18,2);l.position.set(i*6,5,-1);sc.add(l);const lm=new T.Mesh(new T.BoxGeometry(1.2,.1,.3),new T.MeshBasicMaterial({color:0xfff5e0}));lm.position.copy(l.position);sc.add(lm)}
+(function(){var c=document.createElement('canvas');c.width=c.height=512;var x=c.getContext('2d');x.fillStyle='#262c34';x.fillRect(0,0,512,512);for(var i=0;i<2500;i++){x.fillStyle='rgba('+(Math.random()<.5?'255,255,255':'0,0,0')+','+Math.random()*.07+')';x.fillRect(Math.random()*512,Math.random()*512,2,2)}x.strokeStyle='#3a424d';x.lineWidth=3;x.strokeRect(1,1,510,510);x.fillStyle='#e8c030';x.fillRect(0,250,512,10);
+var ft=new T.CanvasTexture(c);ft.wrapS=ft.wrapT=T.RepeatWrapping;ft.repeat.set(6,6);ft.encoding=T.sRGBEncoding;ft.anisotropy=8;floor.material.map=ft;floor.material.color.set(0xffffff);floor.material.roughness=.5;floor.material.metalness=.15;floor.material.needsUpdate=true;gr.material.transparent=true;gr.material.opacity=.12;
+var sc2=document.createElement('canvas');sc2.width=512;sc2.height=128;var y=sc2.getContext('2d');y.fillStyle='#10161e';y.fillRect(0,0,512,128);y.fillStyle='#ffcc33';y.font='bold 62px sans-serif';y.textAlign='center';y.fillText('АВТОСЕРВИС',256,82);y.fillStyle='#fff';y.font='20px sans-serif';y.fillText('моторы · КПП · диагностика',256,114);
+var sg=new T.Mesh(new T.PlaneGeometry(8,2),new T.MeshBasicMaterial({map:new T.CanvasTexture(sc2)}));sg.position.set(0,6.4,-19.7);sc.add(sg);
+var lm=new T.MeshStandardMaterial({color:0xd4a017,metalness:.5,roughness:.5});
+[-1,1].forEach(function(q){var p=new T.Mesh(new T.BoxGeometry(.35,6.5,.35),lm);p.position.set(q*5.2,1.6,-7);p.castShadow=true;sc.add(p)});
+var bm=new T.Mesh(new T.BoxGeometry(10.8,.3,.4),lm);bm.position.set(0,4.8,-7);sc.add(bm);
+var pm=new T.MeshStandardMaterial({color:0x2c3e50,metalness:.6,roughness:.4});var pp=new T.Mesh(new T.BoxGeometry(.4,8,.4),pm);pp.position.set(-5,2.35,2.5);sc.add(pp);var bo=new T.Mesh(new T.BoxGeometry(7,.3,.3),pm);bo.position.set(-1.5,6.2,2.5);sc.add(bo);var ch=new T.Mesh(new T.CylinderGeometry(.03,.03,1.4,6),toolM);ch.position.set(1.5,5.5,2.5);sc.add(ch);var hk=new T.Mesh(new T.TorusGeometry(.18,.04,6,12),toolM);hk.position.set(1.5,4.7,2.5);sc.add(hk);
+var tc=new T.Mesh(new T.BoxGeometry(1.8,2.2,.8),new T.MeshStandardMaterial({color:0xb91c1c,metalness:.5,roughness:.45}));tc.position.set(-9.5,-.55,-6);sc.add(tc);for(var i=0;i<5;i++){var d=new T.Mesh(new T.BoxGeometry(1.6,.06,.05),toolM);d.position.set(-9.5,-1.4+i*.42,-5.6);sc.add(d);var h=new T.Mesh(new T.BoxGeometry(.5,.05,.06),new T.MeshBasicMaterial({color:0xcccccc}));h.position.set(-9.5,-1.25+i*.42,-5.58);sc.add(h)}
+var pb=new T.Mesh(new T.PlaneGeometry(6,3),new T.MeshStandardMaterial({color:0x3a2f24,roughness:.9}));pb.position.set(-12,2.2,-19.6);sc.add(pb);for(var i=0;i<14;i++){var t=new T.Mesh(new T.BoxGeometry(.12,.7+Math.random()*.6,.05),toolM);t.position.set(-14.5+i*.4,2.2+Math.random()*.6,-19.5);sc.add(t)}
+for(var i=0;i<4;i++){var tr=new T.Mesh(new T.TorusGeometry(.55,.18,8,16),new T.MeshStandardMaterial({color:0x1a1a1a,roughness:.9}));tr.rotation.x=PI/2;tr.position.set(-11.2,-1.45+i*.36,2.6);sc.add(tr)}
+var cs=document.createElement('canvas');cs.width=cs.height=128;var q=cs.getContext('2d'),gd=q.createRadialGradient(64,64,4,64,64,64);gd.addColorStop(0,'rgba(0,0,0,.65)');gd.addColorStop(1,'rgba(0,0,0,0)');q.fillStyle=gd;q.fillRect(0,0,128,128);var shp=new T.Mesh(new T.PlaneGeometry(15,6),new T.MeshBasicMaterial({map:new T.CanvasTexture(cs),transparent:true,depthWrite:false}));shp.rotation.x=-PI/2;shp.position.set(2,-1.63,0);sc.add(shp);
+var DEC=new T.Group();sc.add(DEC);
+var cm2=new T.MeshPhysicalMaterial({color:0x9b1c1c,metalness:.6,roughness:.25,clearcoat:1}),gl2=new T.MeshStandardMaterial({color:0x0a1520,metalness:.9,roughness:.1});
+function B(w,h,d,m,x,y,z){var o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=true;DEC.add(o);return o}
+B(5,.8,2,cm2,0,6.5,-7);B(2.6,.7,1.8,gl2,-.2,7.2,-7);B(.05,.2,1.6,new T.MeshBasicMaterial({color:0xfff2c0}),2.52,6.6,-7);B(.05,.2,1.6,new T.MeshBasicMaterial({color:0xff2a2a}),-2.52,6.6,-7);
+[[-1.6,-6],[1.6,-6],[-1.6,-8],[1.6,-8]].forEach(function(w){var t=new T.Mesh(new T.CylinderGeometry(.55,.55,.4,20),new T.MeshStandardMaterial({color:0x151515,roughness:.9}));t.rotation.x=PI/2;t.position.set(w[0],6,w[1]);DEC.add(t);var h=new T.Mesh(new T.CylinderGeometry(.3,.3,.42,12),toolM);h.rotation.x=PI/2;h.position.set(w[0],6,w[1]);DEC.add(h)});
+[0xb91c1c,0x1d4ed8,0x15803d].forEach(function(c,i){var d=new T.Mesh(new T.CylinderGeometry(.5,.5,1.5,16),new T.MeshStandardMaterial({color:c,metalness:.5,roughness:.5}));d.position.set(11+i*1.1,-.9,-4);d.castShadow=true;DEC.add(d)});
+for(var i=0;i<3;i++){B(4.4,.1,1,new T.MeshStandardMaterial({color:0x4a5058,metalness:.6}),13,i*1.8,-18.8);for(var j=0;j<4;j++)B(.7,.5+Math.random()*.4,.6,new T.MeshStandardMaterial({color:[0xc9a227,0x6b7280,0xb45309,0x1e3a5f][j],roughness:.8}),11.8+j*.9,.35+i*1.8,-18.8)}
+[-6,0,6].forEach(function(x){B(5,.08,.4,new T.MeshBasicMaterial({color:0xeaf4ff}),x,9.2,-6)});
+var sm=new T.MeshStandardMaterial({color:0x6b7280,metalness:.6,roughness:.5});
+for(var i=0;i<22;i++)B(8,.1,.14,sm,6,-1+i*.27,-19.6);B(8.4,.2,.3,new T.MeshStandardMaterial({color:0x2b3036}),6,5.1,-19.5);
+var ct=new T.Mesh(new T.CylinderGeometry(.6,.6,2.2,20),new T.MeshStandardMaterial({color:0xb91c1c,metalness:.5,roughness:.4}));ct.rotation.z=PI/2;ct.position.set(-8,-.8,-17);ct.castShadow=true;DEC.add(ct);B(.6,.5,.6,toolM,-6.7,-.3,-17);B(.1,.5,.1,toolM,-7.6,-1.4,-17.5);B(.1,.5,.1,toolM,-8.4,-1.4,-17.5);
+var pc=document.createElement('canvas');pc.width=256;pc.height=360;var pq=pc.getContext('2d');pq.fillStyle='#161b22';pq.fillRect(0,0,256,360);pq.fillStyle='#ff3b30';pq.font='bold 54px sans-serif';pq.textAlign='center';pq.fillText('V8',128,120);pq.fillStyle='#fff';pq.font='28px sans-serif';pq.fillText('POWER',128,170);pq.fillStyle='#ffcc33';pq.fillRect(40,200,176,6);pq.fillStyle='#9aa4b2';pq.font='18px sans-serif';pq.fillText('JODIK GARAGE',128,260);
+var pm=new T.Mesh(new T.PlaneGeometry(2.4,3.4),new T.MeshBasicMaterial({map:new T.CanvasTexture(pc)}));pm.position.set(-4.5,2.6,-19.65);DEC.add(pm);
+[-8,1.5,11].forEach(function(x){var b=new T.Mesh(new T.SphereGeometry(.18,12,8),new T.MeshBasicMaterial({color:0xfff2c0}));b.position.set(x,7.2,2);DEC.add(b);B(.04,1.6,.04,toolM,x,8,2);var sh=new T.Mesh(new T.ConeGeometry(.5,.4,16,1,true),new T.MeshStandardMaterial({color:0x2b3036,side:T.DoubleSide,metalness:.6,roughness:.5}));sh.position.set(x,7.5,2);DEC.add(sh)});
+for(var i=0;i<4;i++){var st=new T.Mesh(new T.CircleGeometry(.6+Math.random()*.9,20),new T.MeshBasicMaterial({color:0x05070a,transparent:true,opacity:.45,depthWrite:false}));st.rotation.x=-PI/2;st.position.set(-4+Math.random()*9,-1.62,-2+Math.random()*5);DEC.add(st)}
+var fe=new T.Mesh(new T.CylinderGeometry(.18,.18,.8,12),new T.MeshStandardMaterial({color:0xdc2626,metalness:.4,roughness:.4}));fe.position.set(-16,.2,-19.5);DEC.add(fe);B(.1,.25,.1,toolM,-16,.7,-19.5);
+for(var i=0;i<3;i++){var pp=new T.Mesh(new T.CylinderGeometry(.12,.12,40,10),sm);pp.rotation.z=PI/2;pp.position.set(0,10+i*.3,-12+i*3);DEC.add(pp)}
+
+var wd=new T.MeshStandardMaterial({color:0x7a5230,roughness:.85}),mt2=new T.MeshStandardMaterial({color:0x3a4a5a,metalness:.6,roughness:.5});
+B(4.2,.15,1.4,wd,-13,-.5,-17);[-1.9,1.9].forEach(function(x){[-.6,.6].forEach(function(z){B(.12,1.2,.12,mt2,-13+x,-1.1,-17+z)})});B(.5,.3,.4,mt2,-14.5,-.3,-17);B(.2,.15,.6,toolM,-14.5,-.1,-17);
+[0,1,2,3,4].forEach(function(i){B(.9,.06,.12,toolM,-12+i*.3,-.4,-17+.2*(i%2))});B(.7,.4,.5,new T.MeshStandardMaterial({color:0xb91c1c,metalness:.4,roughness:.5}),-10.8,-.25,-17);
+B(1.4,1.4,1.1,new T.MeshStandardMaterial({color:0x1d4ed8,metalness:.4,roughness:.5}),-16.5,-.9,-15);B(1.5,.1,1.2,toolM,-16.5,-.15,-15);
+for(var i=0;i<3;i++){B(2,.12,1.4,wd,15,-1.58+i*.0,-12-i*0);B(1.9,1.1,1.3,new T.MeshStandardMaterial({color:0x9a7b4f,roughness:.9}),15,-1+i*1.2,-12);B(1.2,.5,.02,new T.MeshStandardMaterial({color:0xf2f2f2,roughness:.6}),15,-.8+i*1.2,-11.34)}
+var tc2=document.createElement('canvas');tc2.width=512;tc2.height=64;var tq2=tc2.getContext('2d');tq2.fillStyle='#cbd5e1';tq2.fillRect(0,0,512,64);tq2.strokeStyle='#94a3b8';tq2.lineWidth=2;for(var i=0;i<=16;i++){tq2.beginPath();tq2.moveTo(i*32,0);tq2.lineTo(i*32,64);tq2.stroke()}for(var j=0;j<=2;j++){tq2.beginPath();tq2.moveTo(0,j*32);tq2.lineTo(512,j*32);tq2.stroke()}
+var tt=new T.CanvasTexture(tc2);tt.encoding=T.sRGBEncoding;tt.wrapS=tt.wrapT=T.RepeatWrapping;tt.repeat.set(3,1);var tl=new T.Mesh(new T.PlaneGeometry(48,2),new T.MeshStandardMaterial({map:tt,roughness:.5}));tl.position.set(0,-.55,-19.78);DEC.add(tl);
+[-19,-16.5,-14,-11.5,-9].forEach(function(z,i){B(.8,2.3,1.3,new T.MeshStandardMaterial({color:[0x374151,0x1f2937,0x4b5563][i%3],metalness:.5,roughness:.5}),-21.5,-.5,z);B(.04,.2,.5,toolM,-21.05,-.2,z)});
+for(var k=0;k<3;k++)for(var q=0;q<3;q++){var tr2=new T.Mesh(new T.TorusGeometry(.55,.2,10,18),new T.MeshStandardMaterial({color:0x151515,roughness:.9}));tr2.rotation.x=PI/2;tr2.position.set(20,-1.4+q*.5,-14+k*1.5);DEC.add(tr2)}
+var cl2=document.createElement('canvas');cl2.width=cl2.height=128;var cq=cl2.getContext('2d');cq.fillStyle='#f1f5f9';cq.beginPath();cq.arc(64,64,62,0,6.283);cq.fill();cq.strokeStyle='#111';cq.lineWidth=4;cq.stroke();for(var i=0;i<12;i++){var w=i*.5236;cq.beginPath();cq.moveTo(64+50*Math.sin(w),64-50*Math.cos(w));cq.lineTo(64+58*Math.sin(w),64-58*Math.cos(w));cq.stroke()}cq.lineWidth=5;cq.beginPath();cq.moveTo(64,64);cq.lineTo(64+30*Math.sin(.3),64-30*Math.cos(.3));cq.stroke();cq.lineWidth=3;cq.beginPath();cq.moveTo(64,64);cq.lineTo(64+44*Math.sin(2),64-44*Math.cos(2));cq.stroke();
+var ct2=new T.CanvasTexture(cl2);ct2.encoding=T.sRGBEncoding;var clk=new T.Mesh(new T.CircleGeometry(.8,32),new T.MeshBasicMaterial({map:ct2}));clk.position.set(9,6.2,-19.65);DEC.add(clk);
+[-1,1].forEach(function(x){B(.5,.6,.5,new T.MeshStandardMaterial({color:0xdc2626,metalness:.4,roughness:.5}),x*3+6,-1.3,-4)});
+window.__env={winM:winM,wallM:wallM,dec:DEC}})();
+})();
+
+const sun=new T.DirectionalLight(0xfff5e6,1.2);sun.position.set(5,11,4);sun.castShadow=true;sun.shadow.mapSize.set(innerWidth>900?2048:1024,innerWidth>900?2048:1024);const shc=sun.shadow.camera;shc.left=shc.bottom=-9;shc.right=shc.top=9;shc.far=40;sun.shadow.bias=-.0005;sun.shadow.normalBias=.04;sc.add(sun);const rimL=new T.DirectionalLight(0x6fa8ff,.7);rimL.position.set(-6,4,-8);sc.add(rimL);const spot=new T.SpotLight(0xfff0dd,.7,45,.55,.7,1);spot.position.set(2,10,4);spot.target.position.set(1.5,0,0);sc.add(spot,spot.target);
+const hemi=new T.HemisphereLight(0x8ab0e0,0x1a1520,.48);sc.add(hemi);
+sc.add(new T.AmbientLight(0x283848,.28));
+(()=>{const es=new T.Scene();es.add(new T.Mesh(new T.SphereGeometry(20,16,8),new T.MeshBasicMaterial({color:0x8a9bb0,side:T.BackSide})));[[0,15,0,12,1,12,0xffffff],[15,5,0,1,8,14,0xffeedd],[-15,4,5,1,6,10,0x88aaff],[0,3,-15,16,5,1,0xffffff],[0,3,15,16,5,1,0xffffff],[0,-6,0,14,.5,14,0x9a6a40]].forEach(a=>{const m=new T.Mesh(new T.BoxGeometry(a[3],a[4],a[5]),new T.MeshBasicMaterial({color:a[6]}));m.material.color.multiplyScalar(4);m.position.set(a[0],a[1],a[2]);es.add(m)});sc.environment=new T.PMREMGenerator(rd).fromScene(es).texture})();
+
+const GM=new T.MeshBasicMaterial({color:0x35ff7a,transparent:true,opacity:.32,depthTest:false});
+var NZ=(function(){var c=document.createElement('canvas');c.width=c.height=128;var x=c.getContext('2d'),d=x.createImageData(128,128);for(var i=0;i<d.data.length;i+=4){var v=128+(Math.random()-.5)*90;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255}x.putImageData(d,0,0);var t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(3,3);return t})();
+function mat(gh,c,me,ro,pc){if(gh)return GM;var o={color:c,metalness:me===undefined?.82:me,roughness:Math.max(ro===undefined?.35:ro,.28)};var m=pc?new T.MeshPhysicalMaterial(Object.assign(o,{clearcoat:1,clearcoatRoughness:.12})):new T.MeshStandardMaterial(o);m.envMapIntensity=1.5;if(m.roughness>=.3){m.bumpMap=NZ;m.bumpScale=.2}return m}
+const bx=(g,w,h,d,m,x,y,z,rx)=>{const o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.castShadow=o.receiveShadow=m!==GM;o.frustumCulled=false;o.position.set(x,y,z);if(rx)o.rotation.x=rx;g.add(o);return o};
+const cy=(g,r,h,m,x,y,z,rz,rx)=>{const o=new T.Mesh(new T.CylinderGeometry(r,r,h,24),m);o.castShadow=o.receiveShadow=m!==GM;o.frustumCulled=false;o.position.set(x,y,z);o.rotation.z=(rz===undefined?PI/2:rz);if(rx)o.rotation.x=rx;g.add(o);return o};
+
+function IY(E){return E.v?(E.a>=1.5?1.15:(E.a<.3?4.5:2.4)):2.6}
+const tube=(g,a,b,r,m)=>{const A=new T.Vector3(a[0],a[1],a[2]),B=new T.Vector3(b[0],b[1],b[2]),d=B.clone().sub(A),o=new T.Mesh(new T.CylinderGeometry(r,r,d.length(),10),m);o.position.copy(A.clone().add(B).multiplyScalar(.5));o.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());o.castShadow=m!==GM;g.add(o);return o};
+const poly=(g,pts,r,m)=>{for(let i=0;i<pts.length-1;i++)tube(g,pts[i],pts[i+1],r,m);for(let i=1;i<pts.length-1;i++){const o=new T.Mesh(new T.SphereGeometry(r,8,6),m);o.position.set(pts[i][0],pts[i][1],pts[i][2]);g.add(o)}};
+function ACP(E){return (E.v&&E.a>=1.5)?[1.25,-1.0]:[0,-1.35]}
+function mkBelt(g,fx,C,mb,mp,mk){const sp=[],pts=[];C.forEach(c=>{if(c[4]===0)return;const s=new T.Group();s.position.set(fx,c[0],c[1]);g.add(s);cy(s,c[2],.18,mp,0,0,0);cy(s,c[2]*1.05,.03,mp,.08,0,0);cy(s,c[2]*1.05,.03,mp,-.08,0,0);cy(s,c[2]*.4,.24,mp,0,0,0);bx(s,.22,.05,c[2]*.8,mk,0,c[2]*.45,0);sp.push([s,c[3]])});
+C.forEach(c=>{for(let q=0;q<24;q++){const w=q/24*6.283;pts.push([c[0]+(c[2]+.03)*cos(w),c[1]+(c[2]+.03)*sin(w)])}});
+pts.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],up=[];
+pts.forEach(p=>{while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p)});for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(up.length>1&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p)}
+const H=lo.slice(0,-1).concat(up.slice(0,-1)),cum=[0];H.forEach((p,i)=>{const q=H[(i+1)%H.length];cum.push(cum[i]+Math.hypot(q[0]-p[0],q[1]-p[1]));const l=cum[i+1]-cum[i];if(l>.001)bx(g,.15,l,.035,mb,fx,(p[0]+q[0])/2,(p[1]+q[1])/2,Math.atan2(q[1]-p[1],q[0]-p[0]))});
+const PL=cum[H.length],N=Math.round(PL/.16),rb=[];const at=s=>{s=((s%PL)+PL)%PL;let i=0;while(i<H.length-1&&cum[i+1]<s)i++;const p=H[i],q=H[(i+1)%H.length],t=(s-cum[i])/((cum[i+1]-cum[i])||1);return[p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t,Math.atan2(q[1]-p[1],q[0]-p[0])]};
+for(let i=0;i<N;i++)rb.push(bx(g,.12,.09,.06,mb,fx,0,0));
+return function(th){sp.forEach(a=>a[0].rotation.x=th*a[1]);rb.forEach((m,i)=>{const r=at(i*PL/N+th*C[0][3]*(C[0][2]+.03));m.position.set(fx,r[0],r[1]);m.rotation.x=r[2]})}}
+function specs(E,AU){
+const n=E.n,pb=E.v?n/2:n,L=pb*SP+.5,xs=j=>(j-(pb-1)/2)*SP;
+const banks=E.v?[-E.a,E.a]:[0],[cb,ch,cc]=E.c,xf=L/2+.25,out=[];
+const S=(kind,label,o)=>out.push(Object.assign({kind,label},o));
+S('block','Блок',{shell:1,build:gh=>{const g=new T.Group(),m=mat(gh,cb,.7,.5);bx(g,L,1.4,1.6,m,0,-.1,0);banks.forEach(a=>{bx(g,L,2,1.15,m,0,cos(a),sin(a),a);});for(let j=0;j<=pb;j++)bx(g,.08,1.5,1.7,m,(j-pb/2)*SP,-.1,0);
+ const rb=mat(gh,0x111111,.1,.95);for(let j=0;j<=pb;j++)bx(g,.3,.2,.9,mat(gh,0x2b3a4d,.6,.5),(j-pb/2)*SP,-.88,0);
+ const dk=gh?GM:new T.MeshStandardMaterial({color:0x07090c,metalness:.2,roughness:.9,side:T.DoubleSide});
+ banks.forEach(function(a){for(let j=0;j<pb;j++){const t=new T.Mesh(new T.CylinderGeometry(.42,.42,2.05,28,1,true),dk);t.position.set(xs(j),cos(a),sin(a));t.rotation.x=a;g.add(t);const rg=new T.Mesh(new T.RingGeometry(.42,.62,28),mat(gh,0x8d949c,.9,.3));rg.position.set(xs(j),2.03*cos(a),2.03*sin(a));rg.rotation.x=a-PI/2;g.add(rg)}});
+ for(let j=0;j<pb;j++)[-1,1].forEach(sg=>cy(g,.12,.05,mat(gh,0xc9a227,.8,.4),xs(j),.2,sg*.82,0,PI/2));for(let j=0;j<=pb;j++)[-1,1].forEach(sg=>bx(g,.06,1.3,.08,m,(j-pb/2)*SP,-.1,sg*.84));
+ [-1,1].forEach(function(sg){bx(g,.7,.2,.4,m,0,-.35,sg*1.0);cy(g,.18,.25,rb,0,-.55,sg*1.1,0)});
+ return g}});
+S('liner','Гильзы цилиндров',{oil:1,bolts:0,noBolt:1,build:gh=>{const g=new T.Group(),m=gh?GM:new T.MeshStandardMaterial({color:0x9fd0ff,metalness:.3,roughness:.1,transparent:true,opacity:.12,depthWrite:false,side:T.DoubleSide}),fm=gh?GM:new T.MeshStandardMaterial({color:0xc7ccd2,metalness:.95,roughness:.2});banks.forEach(a=>{for(let j=0;j<pb;j++){const l=new T.Mesh(new T.CylinderGeometry(.41,.41,1.95,28,1,true),m);l.position.set(xs(j),1.02*cos(a),1.02*sin(a));l.rotation.x=a;g.add(l);const f=new T.Mesh(new T.TorusGeometry(.43,.03,6,20),fm);f.position.set(xs(j),2*cos(a),2*sin(a));f.rotation.x=a-PI/2;g.add(f)}});return g}});
+S('crank','Коленвал',{oil:1,bolts:2,build:gh=>{const g=new T.Group(),sp=new T.Group(),m=mat(gh,0xb8bec6,.95,.22);g.add(sp);cy(sp,.16,L+1,m,-.2,0,0);for(let j=0;j<pb;j++){const t=new T.Group();t.rotation.x=E.th[j];sp.add(t);[-.2,.2].forEach(o=>{bx(t,.1,R+.55,.5,m,xs(j)+o,R/2-.1,0);bx(t,.1,.5,.55,m,xs(j)+o,-.4,0)});cy(t,.13,.4,m,xs(j),R,0);cy(t,.22,.18,m,xs(j),-.38,0)}const p=new T.Group();p.position.x=-L/2-.5;sp.add(p);cy(p,.42,.15,mat(gh,0x555c66,.9,.3),0,0,0);
+   g.userData.spin=sp;return g}});
+for(let i=0;i<n;i++){const k=E.v?i%2:0,j=E.v?i>>1:i,a=banks[k];
+S('piston','Поршень',{oil:1,bolts:2,build:gh=>{const g=new T.Group(),m=mat(gh,0xd0d4d9,.9,.28),rm=mat(gh,0x8a9099,.9,.4);const p=cy(g,.38,.5,m,0,0,0,0);cy(p,.395,.03,mat(gh,0x222222),0,.1,0,0);cy(p,.395,.03,mat(gh,0x222222),0,.04,0,0);cy(p,.395,.03,mat(gh,0x222222),0,-.02,0,0);cy(p,.07,.78,mat(gh,0x8a9099,.95,.25),0,-.12,0);cy(p,.14,.03,mat(gh,0x15171a),.13,.255,0,0);cy(p,.14,.03,mat(gh,0x15171a),-.13,.255,0,0);const rod=bx(g,.12,LR,.22,rm,0,0,0);cy(rod,.17,.35,rm,0,-LR/2,0);cy(rod,.1,.3,rm,0,LR/2,0);cy(rod,.14,.1,mat(gh,0xc9a227,.9,.3),0,-LR/2,0);cy(rod,.025,.2,mat(gh,0x222222,.9,.4),0,-LR/2-.12,.1,0);cy(rod,.025,.2,mat(gh,0x222222,.9,.4),0,-LR/2-.12,-.1,0);g.userData.upd=th=>{const an=th+E.th[j],py=R*cos(an),pz=R*sin(an),d=sin(a-an)*R,s=py*cos(a)+pz*sin(a)+Math.sqrt(Math.max(0,LR*LR-d*d)),sy=s*cos(a),sz=s*sin(a);p.position.set(xs(j),sy+.2*cos(a),sz+.2*sin(a));p.rotation.x=a;rod.position.set(xs(j),(py+sy)/2,(pz+sz)/2);rod.rotation.x=Math.atan2(sz-pz,sy-py)};g.userData.upd(0);return g}})}
+banks.forEach(a=>S('cam','Распредвал',{oil:1,bolts:2,build:gh=>{
+   const g=new T.Group(),sp=new T.Group(),m=mat(gh,0x9aa0a8,.9,.28);
+   const c0=Math.cos(a),s0=Math.sin(a);
+   sp.position.set(0,2.25*c0,2.25*s0);g.add(sp);
+   cy(sp,.09,L+.5,m,-.25,0,0);
+   // Кулачки
+   for(let j=0;j<pb;j++)[-.18,.18].forEach(function(o){bx(sp,.1,.32,.12,m,xs(j)+o,0.08,0)});
+   // Шестерня ГРМ на распредвале (спереди)
+   
+   // Коромысла / толкатели над каждым цилиндром — качаются от кулачков
+   g.userData.rockers=[];
+   for(let j=0;j<pb;j++){
+     const rk=new T.Group();
+     // СНАРУЖИ сверху ГБЦ
+     rk.position.set(xs(j),2.95*c0,2.95*s0);rk.rotation.x=a;[-.18,.18].forEach(function(o){cy(g,.028,.8,mat(gh,0xb8bec6,.95,.25),xs(j)+o,2.5*c0,2.5*s0,0,a);cy(g,.1,.03,mat(gh,0x9aa0a8,.9,.3),xs(j)+o,2.08*c0,2.08*s0,0,a);cy(g,.065,.3,mat(gh,0xc9a227,.8,.3),xs(j)+o,2.62*c0,2.62*s0,0,a)});
+     g.add(rk);
+     bx(rk,.1,.07,.5,mat(gh,0xc8c8c8,.85,.25),0,0,0);
+     // Стойка коромысла
+     cy(rk,.035,.25,mat(gh,0x888888),0,-.15,0,0);
+     // Контакты клапанов
+     cy(rk,.03,.12,mat(gh,0xaaaaaa),.18,-.05,0,0);
+     cy(rk,.03,.12,mat(gh,0xaaaaaa),-.18,-.05,0,0);
+     g.userData.rockers.push(rk);
+   }
+   g.userData.spin=sp;g.userData.k=.5;
+   return g}}));
+banks.forEach(a=>S('hgasket','Прокладка ГБЦ',{bolts:0,noBolt:1,build:gh=>{const g=new T.Group(),c=cos(a),s=sin(a);bx(g,L,.04,1.15,mat(gh,0xb87333,.6,.45),0,2.04*c,2.04*s,a);for(let j=0;j<pb;j++)cy(g,.4,.05,mat(gh,0x050505),xs(j),2.045*c,2.045*s,0,a);return g}}));
+banks.forEach(a=>S('head','ГБЦ',{shell:1,bolts:4,build:gh=>{const g=new T.Group(),m=mat(gh,ch,.85,.4),c=cos(a),s=sin(a);bx(g,L,.6,1.1,m,0,2.3*c,2.3*s,a);bx(g,L-.2,.38,.9,mat(gh,cc,.35,.3,1),0,2.78*c,2.78*s,a);for(let j=0;j<pb;j++){cy(g,.15,.95,mat(gh,0x23272d,.8,.5),xs(j),2.775*c,2.775*s,0,a);cy(g,.17,.04,mat(gh,0x8d949c,.9,.3),xs(j),3.25*c,3.25*s,0,a)}const hb=mat(gh,0x9aa0a8,.9,.3);cy(g,.14,.08,mat(gh,0x1f2937,.3,.6),-L/2+.35,3.02*c,3.02*s,0,a);cy(g,.11,.04,mat(gh,0xdd3333,.4,.5),-L/2+.35,3.08*c,3.08*s,0,a);for(let j=0;j<=pb;j++)[-.35,.35].forEach(q=>cy(g,.05,.06,hb,(j-pb/2)*SP,2.99*c-q*s,2.99*s+q*c,0,a));return g}}));
+banks.forEach(a=>S('spark','Свечи',{bolts:1,build:gh=>{const g=new T.Group(),c=cos(a),s=sin(a),mi=mat(gh,0xf4f4ef,.1,.3),ms=mat(gh,0xb8bec6,.95,.25),mg2=mat(gh,0xd8b24a,.9,.3),mr=mat(gh,0x8a1f1f,.4,.6),sk=[];
+ for(let j=0;j<pb;j++){const x=xs(j),P1=(r,h,m,d,sg)=>{const o=new T.Mesh(new T.CylinderGeometry(r,r,h,sg||20),m);o.position.set(x,d*c,d*s);o.rotation.x=a;o.castShadow=m!==GM;g.add(o)};
+  P1(.05,.6,ms,2.35);P1(.1,.12,ms,2.7,6);P1(.06,.45,mi,2.95);[2.85,2.95,3.05].forEach(d=>P1(.078,.03,mi,d));P1(.025,.16,mg2,3.2);P1(.07,.12,mr,3.14);
+  if(!gh){const sp=new T.Sprite(new T.SpriteMaterial({map:FT,color:0xbfe6ff,blending:T.AdditiveBlending,transparent:true,depthWrite:false,opacity:0}));sp.scale.setScalar(.7);sp.position.set(x,2.12*c,2.12*s);sp.userData.ph=(E.th[j]||0)/2+(a<0?PI:0);sk.push(sp);g.add(sp)}}
+ g.userData.sparks=sk;return g}}));
+banks.forEach(a=>S('wire','Провода',{bolts:0,noBolt:1,optional:1,build:gh=>{const g=new T.Group(),c=cos(a),s=sin(a),mm=mat(gh,0x111111,.3,.7),rr=mat(gh,0x8a1f1f,.3,.7),h=4.0;
+ tube(g,[xs(0),h*c,h*s],[xs(pb-1),h*c,h*s],.035,mm);for(let j=0;j<pb;j++)tube(g,[xs(j),h*c,h*s],[xs(j),3.85*c,3.85*s],.03,rr);
+ tube(g,[xs(pb-1),h*c,h*s],[L/2+.9,h*c-.1,h*s],.04,mm);return g}}));
+S('coil','Катушки',{bolts:2,build:gh=>{const g=new T.Group(),m=mat(gh,0x1f2937,.5,.5);banks.forEach(a=>{for(let j=0;j<pb;j++){cy(g,.11,.45,m,xs(j),3.5*cos(a),3.5*sin(a),0,a);cy(g,.06,.12,mat(gh,0xc0c0c0,.9,.3),xs(j),3.77*cos(a),3.77*sin(a),0,a)}});return g}});
+S('intake','Впуск',{shell:1,bolts:4,build:gh=>{const g=new T.Group(),m=mat(gh,n==8?0xcfd6dd:0x7a828b,.9,.3),y=IY(E),z=E.v?0:-1.1;bx(g,L-.3,.55,E.v?(n==8?1.2:.8):.6,m,0,y,z);cy(g,.28,.5,mat(gh,0x111111),-L/2-.1,y,z);for(let j=0;j<pb;j++)(E.v?[-.5,.5]:[.4]).forEach(o=>cy(g,.13,.8,m,xs(j),y-.5,z+o,0));return g}});
+S('injectors','Форсунки',{bolts:2,build:gh=>{const g=new T.Group(),m=mat(gh,0x1f2937,.6,.5),y=IY(E)+.45,z=E.v?0:-1.05;bx(g,L-.4,.15,.2,m,0,y,z);for(let j=0;j<pb;j++)cy(g,.05,.35,m,xs(j),y-.2,z,0);return g}});
+S('fuelLine','Топл. трубки',{bolts:0,noBolt:1,build:gh=>{const g=new T.Group(),m=mat(gh,0x8a6a2b,.7,.4),y=IY(E)+.7,z=E.v?-.4:-1.4;cy(g,.04,L+.5,m,0,y,z);cy(g,.04,1.2,m,L/2+.6,y-.5,z,0);return g}});
+S('throttle','Дроссель',{bolts:3,build:gh=>{const g=new T.Group(),m=mat(gh,0x555c66,.9,.3),bx2=IY(E),bz=E.v?0:-1.1;cy(g,.35,.5,m,-L/2-.3,bx2,bz);const t=new T.Mesh(new T.TorusGeometry(.3,.04,8,10),mat(gh,0xc9a227,.8,.3));t.rotation.y=PI/2;t.position.set(-L/2-.3,bx2,bz);g.add(t);return g}});
+S('pgasket','Прокладка поддона',{bolts:0,noBolt:1,build:gh=>{const g=new T.Group();bx(g,L,.03,1.5,mat(gh,0x111111,.1,.9),0,-.82,0);return g}});
+S('pan','Поддон',{shell:1,bolts:4,build:gh=>{const g=new T.Group(),m=mat(gh,0x30363d,.6,.5);bx(g,L,.5,1.5,m,0,-1.1,0);bx(g,L-.4,.3,1.3,m,0,-1.45,0);cy(g,.1,.12,mat(gh,0xaaaaaa),L/2-.5,-1.65,0,0);const pb2=mat(gh,0xb8bec6,.9,.3),pn=Math.round(L/.5);for(let q=0;q<=pn;q++){const x=-L/2+.2+q*((L-.4)/pn);[-1,1].forEach(sg=>cy(g,.05,.06,pb2,x,-.83,sg*.7,0))}return g}});
+S('belt','Ремень ГРМ',{bolts:0,noBolt:1,build:gh=>{
+const g=new T.Group(),fx=-L/2-.2,mb=mat(gh,0x0c0c0c,.1,.92),ms=mat(gh,0x9aa0a8,.9,.3),mk=mat(gh,0xff3b30,.2,.6),C=[],sp=[];
+const spk=(y,z,r,k)=>{const s=new T.Group();s.position.set(fx,y,z);g.add(s);cy(s,r,.16,ms,0,0,0);cy(s,r*.35,.22,mat(gh,0x333b44,.8,.4),0,0,0);const N=Math.round(r*34);for(let q=0;q<N;q++){const w=q/N*6.283;bx(s,.16,.08,.07,ms,0,(r+.03)*cos(w),(r+.03)*sin(w),w)}bx(s,.2,.05,r*.8,mk,0,r*.45,0);sp.push([s,k]);C.push([y,z,r+.06])};
+spk(0,0,.3,1);banks.forEach(a=>spk(2.25*cos(a),2.25*sin(a),.6,.5));
+if(!E.v){cy(g,.22,.14,ms,fx,1.15,.62);C.push([1.15,.62,.28])}
+const pts=[];C.forEach(c=>{for(let q=0;q<28;q++){const w=q/28*6.283;pts.push([c[0]+c[2]*cos(w),c[1]+c[2]*sin(w)])}});
+pts.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],up=[];
+pts.forEach(p=>{while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p)});
+for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(up.length>1&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p)}
+const H=lo.slice(0,-1).concat(up.slice(0,-1)),cum=[0];
+H.forEach((p,i)=>{const q=H[(i+1)%H.length];cum.push(cum[i]+Math.hypot(q[0]-p[0],q[1]-p[1]));const l=cum[i+1]-cum[i];if(l>.001)bx(g,.15,l,.035,mb,fx,(p[0]+q[0])/2,(p[1]+q[1])/2,Math.atan2(q[1]-p[1],q[0]-p[0]))});
+const PL=cum[H.length],N=Math.round(PL/.2),teeth=[];
+const at=s=>{s=((s%PL)+PL)%PL;let i=0;while(i<H.length-1&&cum[i+1]<s)i++;const p=H[i],q=H[(i+1)%H.length],t=(s-cum[i])/((cum[i+1]-cum[i])||1);return[p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t,Math.atan2(q[1]-p[1],q[0]-p[0])]};
+for(let i=0;i<N;i++)teeth.push(bx(g,.12,.09,.07,mb,fx,0,0));
+g.userData.upd=th=>{sp.forEach(a=>a[0].rotation.x=th*a[1]);teeth.forEach((m,i)=>{const r=at(i*PL/N+th*.36);m.position.set(fx,r[0],r[1]);m.rotation.x=r[2]})};
+g.userData.upd(0);return g}});
+S('beltCover','Крышка ГРМ',{bolts:3,optional:1,build:gh=>{const g=new T.Group();(()=>{const cm=mat(gh,0x1a1f26,.5,.5);if(!gh){cm.transparent=true;cm.opacity=.25;cm.depthWrite=false}bx(g,.12,3.4,E.v?4.4:1.8,cm,-L/2-.75,1.45,0)})();return g}});
+S('pump','Помпа',{bolts:3,build:gh=>{const g=new T.Group(),m=mat(gh,0x4a5058,.8,.4),sp=new T.Group();sp.position.set(-L/2-.45,-.55,.9);g.add(sp);cy(sp,.35,.5,m,0,0,0);cy(sp,.15,.7,mat(gh,0xb8bec6,.9,.3),.4,0,0);g.userData.spin=sp;g.userData.k=2;return g}});
+S('coolant','Шланги ОЖ',{bolts:0,noBolt:1,optional:1,build:gh=>{const g=new T.Group(),m=mat(gh,0x15181c,.1,.9),cl=mat(gh,0xb8bec6,.9,.3),X=-L/2-1.4,ty=IY(E)-.55,tz=E.v?0:.6;
+ const clamp=p=>{const o=new T.Mesh(new T.TorusGeometry(.1,.018,6,14),cl);o.position.set(p[0],p[1],p[2]);o.rotation.y=PI/2;g.add(o)};
+ poly(g,[[X+.25,1.05,-.6],[X+.55,1.3,-.5],[-L/2-.75,ty+.2,tz*.5],[-L/2-.4,ty,tz]],.095,m);clamp([X+.27,1.05,-.6]);cy(g,.15,.25,mat(gh,0x3a3f45,.7,.5),-L/2-.28,ty,tz);
+ poly(g,[[X+.25,-1.05,.6],[X+.5,-.95,.8],[-L/2-.75,-.6,.9],[-L/2-.55,-.55,.9]],.095,m);clamp([X+.27,-1.05,.6]);
+ poly(g,[[-L/2-.55,-.5,.85],[-L/2-.6,-.4,1.9],[L/2+1.2,-.4,1.9],[L/2+1.5,-.25,1.7]],.05,m);poly(g,[[-L/2-.5,-.45,.85],[-L/2-.55,-.3,2],[L/2+1.2,-.3,2],[L/2+1.5,-.15,1.8]],.05,m);
+ const tk=gh?GM:new T.MeshStandardMaterial({color:0x3ecf5a,metalness:.2,roughness:.2,transparent:true,opacity:.55,depthWrite:false});bx(g,.35,.5,.7,tk,X-.1,1.55,1);cy(g,.1,.12,mat(gh,0xdd3333,.3,.5),X-.1,1.85,1,0);poly(g,[[X-.1,1.4,.7],[X+.1,1.25,.5],[X+.08,1.2,.5]],.04,m);
+ return g}});
+S('alt','Генератор',{bolts:3,build:gh=>{const g=new T.Group(),m=mat(gh,0x555c66,.85,.4),sp=new T.Group();sp.position.set(-L/2-.45,.9,-1.3);g.add(sp);cy(sp,.45,.7,m,0,0,0);cy(sp,.12,.9,mat(gh,0xb8bec6,.9,.3),0,0,0);g.userData.spin=sp;g.userData.k=1.5;return g}});
+S('battery','АКБ',{bolts:2,build:gh=>{const g=new T.Group(),m=mat(gh,0x111827,.4,.6);bx(g,.8,.4,.5,m,L/2+.8,-1,1);bx(g,.05,.15,.1,mat(gh,0xcc0000,.3,.4),L/2+.55,-.75,1);bx(g,.05,.15,.1,mat(gh,0x0000cc,.3,.4),L/2+1.05,-.75,1);return g}});
+S('starter','Стартер',{bolts:2,build:gh=>{const g=new T.Group(),m=mat(gh,0x2a2f36,.85,.4);cy(g,.26,.55,m,xf-.35,-.95,1.1);cy(g,.09,.35,mat(gh,0xb8bec6,.9,.3),xf+.1,-.95,1.1);return g}});
+S('cables','Провода АКБ',{bolts:0,noBolt:1,build:gh=>{const g=new T.Group(),k=mat(gh,0x111111,.2,.8),r=mat(gh,0xcc0000,.3,.6),bx0=L/2+.55;
+ tube(g,[bx0,-.72,1],[bx0,-.9,1],.04,r);tube(g,[bx0,-.9,1],[L/2+.2,-.9,1.1],.04,r);tube(g,[L/2+.2,-.9,1.1],[L/2-.15,-.95,1.1],.04,r);
+ tube(g,[L/2+1.05,-.72,1],[L/2+1.05,-.95,.8],.045,k);tube(g,[L/2+1.05,-.95,.8],[L/2+.2,-1.0,.7],.045,k);tube(g,[L/2+.2,-1.0,.7],[L/2,-.85,.62],.045,k);
+ poly(g,[[bx0,-.9,1],[bx0,-.75,1.4],[-L/2-.6,-.75,1.4],[-L/2-.6,-.3,-1],[-L/2-.4,.75,-1.3]],.03,r);
+ return g}});
+S('catalyst','Катализатор',{bolts:0,noBolt:1,optional:1,build:gh=>{const g=new T.Group(),ey=-.85,ez=E.v?-(E.a>=1.5?2.9:1.55):-1.35;cy(g,.28,.5,mat(gh,0x7a828b,.6,.5),L/2+1.1,ey,ez);return g}});
+S('ecu','Блок управления',{bolts:0,noBolt:1,optional:1,build:gh=>{const g=new T.Group();bx(g,.5,.35,.9,mat(gh,0x1f2937,.4,.6),L/2+.9,-.2,1.35);bx(g,.52,.08,.4,mat(gh,0xc9a227,.8,.4),L/2+.9,-.02,1.35);return g}});
+S('turbo','Турбина',{bolts:2,optional:1,build:gh=>{const g=new T.Group(),sp=new T.Group(),ey=-.85,ez=E.v?-(E.a>=1.5?2.9:1.55):-1.35,ty=ey+.55,tz=ez-.45;sp.position.set(L/2+.35,ty,tz);g.add(sp);cy(sp,.07,.9,mat(gh,0xb8bec6,.95,.2),0,0,0);cy(sp,.26,.1,mat(gh,0x9aa0a8,.9,.3),-.3,0,0);cy(sp,.22,.08,mat(gh,0x555c66,.9,.3),.3,0,0);cy(g,.34,.4,mat(gh,0x555c66,.8,.45),L/2+.05,ty,tz);cy(g,.3,.4,mat(gh,0x7a828b,.8,.4),L/2+.65,ty,tz);g.userData.spin=sp;g.userData.k=8;return g}});
+S('oilfilter','Масляный фильтр',{bolts:0,noBolt:1,build:gh=>{const g=new T.Group(),X=L/2-.5,Y=-.35;cy(g,.3,.1,mat(gh,0x6b7280,.8,.4),X,Y,.87,0,PI/2);cy(g,.27,.7,mat(gh,0x1f4fbf,.4,.45),X,Y,1.27,0,PI/2);cy(g,.2,.02,mat(gh,0xf2f2f2,.1,.6),X,Y,1.63,0,PI/2);for(let q=0;q<9;q++)cy(g,.285,.02,mat(gh,0x174099,.4,.5),X,Y,1+q*.07,0,PI/2);return g}});
+S('dipstick','Масляный щуп',{bolts:0,noBolt:1,optional:1,build:gh=>{const g=new T.Group(),m=mat(gh,0xb8bec6,.9,.3);tube(g,[-L/2+.55,-.35,.8],[-L/2+.5,-.2,1.95],.03,m);const t=new T.Mesh(new T.TorusGeometry(.1,.025,8,16),mat(gh,0xffcc00,.4,.5));t.position.set(-L/2+.5,-.2,2);g.add(t);return g}});
+S('oilpump','Масляный насос',{bolts:2,build:gh=>{const g=new T.Group(),sp=new T.Group(),x0=-L/2+.45,mg=mat(gh,0xc4a35a,.95,.28);sp.position.set(x0,-.62,0);g.add(sp);cy(g,.3,.28,mat(gh,0x6b7280,.8,.4),x0,-.62,0);cy(sp,.17,.1,mg,0,0,0);for(let q=0;q<10;q++){const w=q*.628;bx(sp,.1,.07,.05,mg,0,.19*cos(w),.19*sin(w),w)}tube(g,[x0,-.8,0],[x0,-1.12,0],.06,mat(gh,0x8a9099,.9,.3));cy(g,.2,.05,mat(gh,0x333b44,.8,.4),x0,-1.15,0,0);g.userData.spin=sp;g.userData.k=1;return g}});
+S('tank','Топливный бак',{bolts:0,noBolt:1,build:gh=>{const g=new T.Group(),m=mat(gh,0x4a5058,.6,.5),X=L/2+2.2,Z=(E.v&&E.a>=1.5)?4.7:3.3;bx(g,2.6,.9,1.5,m,X,-1.1,Z);for(let q=0;q<2;q++)bx(g,.1,1,1.6,mat(gh,0x222831,.5,.6),X-.7+q*1.4,-1.1,Z);cy(g,.12,.5,m,X+1,-.55,Z+.5,0);cy(g,.17,.1,mat(gh,0x111111,.3,.6),X+1,-.28,Z+.5,0);return g}});
+S('fuelpump','Топливный насос',{bolts:0,noBolt:1,build:gh=>{const g=new T.Group(),X=L/2+2.2,Z=((E.v&&E.a>=1.5)?4.7:3.3)-1.1;cy(g,.14,.5,mat(gh,0xc9a227,.8,.35),X,-.55,Z,0);cy(g,.1,.12,mat(gh,0x1f2937,.4,.5),X,-.25,Z,0);poly(g,[[X,-.65,Z],[X,-.7,Z+.6],[X+.3,-.8,Z+1.1]],.05,mat(gh,0x15181c,.1,.9));return g}});
+S('fuelfilter','Топливный фильтр',{bolts:0,noBolt:1,build:gh=>{const g=new T.Group(),X=L/2+1.4,Z=((E.v&&E.a>=1.5)?4.7:3.3)-1.1,y=IY(E)+.7,zr=E.v?-.4:-1.4,rb=mat(gh,0x15181c,.1,.9);cy(g,.13,.55,mat(gh,0xb8bec6,.9,.3),X,-.15,Z,0);cy(g,.14,.04,mat(gh,0x333b44,.8,.4),X,.15,Z,0);poly(g,[[X,.2,Z],[X-.2,.8,Z-.4],[L/2+.5,y-.8,zr+.2],[L/2+.25,y,zr]],.045,rb);poly(g,[[L/2+2.2,-.25,Z],[X+.3,-.2,Z],[X,-.35,Z]],.045,rb);return g}});
+S('accbelt','Приводной ремень',{bolts:0,noBolt:1,optional:1,build:gh=>{const g=new T.Group(),ac=ACP(E);g.userData.upd=mkBelt(g,-L/2-.7,[[0,0,.3,1],[.9,-1.3,.22,2.2],[-.55,.9,.3,1.3],[ac[0],ac[1],.2,1.5]],mat(gh,0x0c0c0c,.1,.92),mat(gh,0x6b7280,.8,.4),mat(gh,0xff3b30,.2,.6));return g}});
+S('acc','Компрессор кондиционера',{bolts:2,optional:1,build:gh=>{const g=new T.Group(),sp=new T.Group(),X=-L/2-.15,ac=ACP(E);sp.position.set(X-.35,ac[0],ac[1]);g.add(sp);cy(g,.28,.5,mat(gh,0x6b7280,.8,.4),X,ac[0],ac[1]);cy(g,.2,.12,mat(gh,0x2b3036,.7,.4),X-.28,ac[0],ac[1]);cy(sp,.17,.06,mat(gh,0x111111,.3,.6),0,0,0);g.userData.spin=sp;g.userData.k=1.5;return g}});
+S('sensors','Датчики',{bolts:0,noBolt:1,optional:1,build:gh=>{const g=new T.Group(),k=mat(gh,0x111111,.2,.8),m=mat(gh,0xb8bec6,.9,.3),ez=E.v?-(E.a>=1.5?2.9:1.55):-1.35;cy(g,.06,.35,m,L/2+.9,-.55,ez,0);cy(g,.04,.2,mat(gh,0x2b3036,.5,.5),L/2+.9,-.3,ez,0);tube(g,[L/2+.9,-.3,ez],[L/2+.9,.2,ez+.6],.015,k);bx(g,.3,.25,.3,mat(gh,0x2b3036,.4,.6),-L/2-.55,IY(E)+.35,E.v?0:-1.1);cy(g,.05,.22,mat(gh,0xc9a227,.8,.4),-L/2-.2,IY(E)-.3,E.v?.5:.6,0);cy(g,.05,.25,m,xs(0),-.2,.88,0,PI/2);return g}});
+S('heatshield','Теплозащита',{bolts:0,noBolt:1,optional:1,build:gh=>{const g=new T.Group(),m=mat(gh,0xc8ced6,.9,.35),hs=E.v?banks.map(a=>(a>=0?1:-1)*(E.a>=1.5?2.9:1.55)):[-1.35];hs.forEach(hz=>{bx(g,L,.5,.03,m,0,-.55,hz+(hz>0?.22:-.22))});return g}});
+S('mounts','Подрамник и опоры',{bolts:0,noBolt:1,build:gh=>{const g=new T.Group(),st=mat(gh,0x3a4a5a,.6,.5),rb=mat(gh,0x111111,.1,.95);[-1,1].forEach(sg=>{bx(g,L+3.2,.18,.16,st,.8,-1.55,sg*1.5);[-L/2+.5,L/2-.5].forEach(x=>{tube(g,[x,-1.55,sg*1.5],[x,-.72,sg*1.1],.07,st);cy(g,.2,.12,rb,x,-.68,sg*1.1,0)})});[-L/2-.2,L/2+.1].forEach(x=>bx(g,.18,.18,3.2,st,x,-1.55,0));return g}});
+S('airFilter','Возд. фильтр',{bolts:2,optional:1,build:gh=>{const g=new T.Group();cy(g,.4,.4,mat(gh,0x222222,.3,.6),-L/2-.5,IY(E),E.v?0:-1.1);return g}});
+S('rad','Радиатор',{bolts:4,build:gh=>{const g=new T.Group(),X=-L/2-1.4,m=mat(gh,0x2b3036,.7,.5),bk=mat(gh,0x111111,.2,.8),fn=mat(gh,0xc8ced6,.9,.4);
+ bx(g,.34,.2,1.75,m,X,1.05,0);bx(g,.34,.2,1.75,m,X,-1.05,0);bx(g,.08,1.9,1.6,mat(gh,0x9aa3ad,.8,.4),X,0,0);
+ for(let q=0;q<26;q++)bx(g,.2,1.9,.014,fn,X+(q%2?-.02:.02),0,-.76+q*.059);
+ for(let q=0;q<9;q++)bx(g,.22,.014,1.6,fn,X,-.9+q*.22,0);
+ cy(g,.14,.18,mat(gh,0xb8bec6,.9,.3),X,1.2,.5,0);cy(g,.11,.3,bk,X+.25,1.05,-.6);cy(g,.11,.3,bk,X+.25,-1.05,.6);
+ const sh=new T.Mesh(new T.TorusGeometry(.64,.05,8,28),bk);sh.rotation.y=PI/2;sh.position.set(-L/2-1.62,0,0);g.add(sh);
+ const v=new T.Group();v.position.set(-L/2-1.66,0,0);g.add(v);cy(v,.1,.12,bk,0,0,0);
+ for(let q=0;q<7;q++){const pv=new T.Group();pv.rotation.x=q*.8976;v.add(pv);const b=bx(pv,.03,.5,.2,bk,0,.35,0);b.rotation.y=.5}
+ for(let q=0;q<4;q++)cy(g,.03,.7,bk,-L/2-1.62,.0,0,0,q*.785);
+ g.userData.spin=v;g.userData.k=3;return g}});
+S('exh','Выхлоп',{bolts:4,exhaust:1,build:gh=>{const g=new T.Group(),m=mat(gh,0x6b7280,.85,.4),mh=mat(gh,0x4a4f57,.9,.5),ey=-.85,mu=mat(gh,0x4a5058,.7,.5);
+ const hs=E.v?banks.map(a=>[a,(a>=0?1:-1)*(E.a>=1.5?2.9:1.55)]):[[0,-1.35]];
+ hs.forEach(h=>{const a=h[0],hz=h[1],sg=E.v?(a>=0?1:-1):-1,nx=E.v?-sin(a)*sg:0,nz=E.v?cos(a)*sg:-1;
+  for(let j=0;j<pb;j++){const x=xs(j),py=2.15*cos(a)+.62*nx,pz=2.15*sin(a)+.62*nz;bx(g,.18,.12,.18,mh,x,py,pz);cy(g,.025,.07,mat(gh,0xb8bec6,.9,.3),x-.07,py,pz,0);cy(g,.025,.07,mat(gh,0xb8bec6,.9,.3),x+.07,py,pz,0);tube(g,[x,py,pz],[x,ey,hz],.085,mh)}
+  cy(g,.13,L+.1,mh,0,ey,hz);cy(g,.12,3.4,m,L/2+1.9,ey,hz);cy(g,.4,1.7,mu,L/2+4,ey,hz);for(let q=0;q<3;q++)cy(g,.41,.05,mat(gh,0x2b3036,.6,.5),L/2+3.5+q*.5,ey,hz);
+  const tip=new T.Mesh(new T.CylinderGeometry(.18,.22,.5,10),mat(gh,0xc0c0c0,.95,.2));tip.rotation.z=PI/2;tip.position.set(L/2+5.1,ey,hz);g.add(tip)});
+ g.userData.tipX=L/2+5.4;g.userData.tipY=ey;g.userData.tipZ=hs[0][1];return g}});
+S('fly','Маховик',{bolts:6,ring:.55,x:xf,build:gh=>{const g=new T.Group(),sp=new T.Group(),m=mat(gh,0x777e87,.9,.32);sp.position.x=xf;g.add(sp);cy(sp,.85,.16,m,0,0,0);cy(sp,.9,.1,mat(gh,0x3a3f45),0,0,0);cy(sp,.25,.24,mat(gh,0xb8bec6),0,0,0);for(let q=0;q<12;q++)cy(sp,.06,.18,m,0,.9*cos(q*.524),.9*sin(q*.524),0);for(let q=0;q<56;q++){const w=q*.1122;bx(sp,.14,.06,.05,mat(gh,0x3a3f45,.8,.4),0,.93*cos(w),.93*sin(w),w)}g.userData.spin=sp;return g}});
+S('clutch',AU?'Гидротрансформатор':'Сцепление',{bolts:AU?6:4,ring:.5,x:xf+.3,build:gh=>{const g=new T.Group(),sp=new T.Group();sp.position.x=xf+.3;g.add(sp);if(AU){const t=new T.Mesh(new T.TorusGeometry(.55,.3,10,20),mat(gh,0x9aa0a8,.9,.3));t.rotation.y=PI/2;t.scale.z=.8;sp.add(t);cy(sp,.2,.6,mat(gh,0xb8bec6),.1,0,0)}else{cy(sp,.75,.12,mat(gh,0x8a9099),0,0,0);cy(sp,.68,.08,mat(gh,0x6b4a2b,.1,.9),-.12,0,0);for(let q=0;q<6;q++)cy(sp,.07,.2,mat(gh,0xc9a227),.12,.45*cos(q*1.047),.45*sin(q*1.047))}g.userData.spin=sp;return g}});
+S('gbox','КПП',{shell:1,bolts:4,build:gh=>{
+ const g=new T.Group(),mC=mat(gh,0x8d949c,.7,.45),mD=mat(gh,0x3a3f45,.6,.5),mSt=mat(gh,0xb8bec6,.95,.22),mG=mat(gh,0xc4a35a,.95,.28),mSy=mat(gh,0xaa7744,.85,.35),mBr=mat(gh,0xb08d57,.9,.3),
+ oil=gh?GM:new T.MeshStandardMaterial({color:0xffb347,metalness:.95,roughness:.15,transparent:true,opacity:.3,depthWrite:false}),cx=xf+2.15;
+ cy(g,.95,1.0,mC,xf+.45,0,0);cy(g,1.0,.1,mC,xf-.02,0,0);for(let q=0;q<10;q++)cy(g,.06,.14,mSt,xf-.02,.97*cos(q*.628),.97*sin(q*.628));
+ bx(g,2.05,2.6,1.4,mC,cx,-.25,0);bx(g,2.1,.12,1.5,mD,cx,1.03,0);for(let q=0;q<6;q++){bx(g,.08,2.2,.08,mD,cx-.85+q*.34,-.3,.74);bx(g,.08,2.2,.08,mD,cx-.85+q*.34,-.3,-.74)}
+ bx(g,.25,2.0,1.1,mC,xf+3.35,0,0);cy(g,.3,.7,mC,xf+3.6,0,0);bx(g,1.9,.6,1.25,oil,cx,-1.2,0);cy(g,.07,.18,mSt,cx,-1.58,0,0);cy(g,.2,.5,mD,cx,1.15,0,0);
+ const tth=(par,r,x)=>{const N=Math.round(r*34);for(let q=0;q<N;q++){const w=q/N*6.283;bx(par,.14,.1,.07,mG,x,(r+.04)*cos(w),(r+.04)*sin(w),w)}};
+ const inp=new T.Group(),main=new T.Group();g.add(inp,main);
+ cy(main,.34,.1,mSt,xf+3.95,0,0);for(let q=0;q<6;q++)cy(main,.04,.14,mD,xf+3.95,.26*cos(q*1.047),.26*sin(q*1.047));
+ if(!AU){
+  cy(inp,.07,1.2,mSt,xf+.7,0,0);cy(inp,.42,.18,mG,xf+.95,0,0);tth(inp,.42,xf+.95);cy(inp,.17,.14,mSt,xf+.35,0,0);
+  const lay=new T.Group();lay.position.y=-.9;g.add(lay);cy(lay,.09,2.9,mSt,xf+2.1,0,0);cy(lay,.48,.18,mG,xf+.95,0,0);tth(lay,.48,xf+.95);cy(lay,.15,.14,mSt,xf+.65,0,0);cy(lay,.15,.14,mSt,xf+3.5,0,0);
+  cy(main,.08,2.7,mSt,xf+2.45,0,0);cy(main,.17,.14,mSt,xf+1.15,0,0);cy(main,.17,.14,mSt,xf+3.1,0,0);
+  const Rm=[.679,.578,.495,.42,.364],Rl=[.221,.322,.405,.48,.536],gx=[1.4,1.75,2.1,2.45,2.8];
+  g.userData.gears=[];g.userData.freeG=[];g.userData.syncs=[];
+  Rm.forEach(function(r,i){const fg=new T.Group();main.add(fg);const gm=cy(fg,r,.16,mG,xf+gx[i],0,0);if(gm.material.clone)gm.material=gm.material.clone();tth(fg,r,xf+gx[i]);cy(lay,Rl[i],.16,mG,xf+gx[i],0,0);tth(lay,Rl[i],xf+gx[i]);g.userData.gears.push(gm);g.userData.freeG.push({g:fg,k:Rl[i]/r})});
+  [1.575,2.275,2.97].forEach(function(a,i){const sy=cy(main,.3,.12,mSy,xf+a,0,0);sy._x0=xf+a;if(sy.material.clone)sy.material=sy.material.clone();cy(main,.34,.04,mBr,xf+a-.11,0,0);cy(main,.34,.04,mBr,xf+a+.11,0,0);
+   const fk=new T.Group();g.add(fk);const ry=.52+i*.1;cy(g,.03,2.1,mSt,cx,ry,0);bx(fk,.06,ry-.3,.1,mD,xf+a,(ry+.3)/2,0);bx(fk,.1,.08,.3,mD,xf+a,.33,0);sy._fk=fk;g.userData.syncs.push(sy)});
+  g.userData.spin3=lay;
+ }else{
+  cy(inp,.1,2.2,mSt,xf+1.1,0,0);cy(main,.12,2.2,mSt,xf+2.8,0,0);const sets=[];
+  [1.3,2.05,2.8].forEach(function(a){const sun=new T.Group(),car=new T.Group(),ring=new T.Group();g.add(sun,car,ring);cy(sun,.22,.2,mG,xf+a,0,0);tth(sun,.22,xf+a);const pls=[];
+   for(let q=0;q<3;q++){const pg=new T.Group();pg.position.set(0,.36*cos(q*2.094),.36*sin(q*2.094));car.add(pg);cy(pg,.14,.2,mG,xf+a,0,0);tth(pg,.14,xf+a);pls.push(pg)}
+   cy(car,.5,.04,mSy,xf+a-.14,0,0);cy(car,.5,.04,mSy,xf+a+.14,0,0);const rg=new T.Mesh(new T.CylinderGeometry(.56,.56,.2,40,1,true),mG);rg.rotation.z=PI/2;rg.position.x=xf+a;ring.add(rg);
+   for(let q=0;q<44;q++){const w=q/44*6.283;bx(ring,.16,.08,.05,mG,xf+a,.6*cos(w),.6*sin(w),w)}sets.push({sun:sun,car:car,ring:ring,pls:pls})});
+  [1.65,2.4,3.15].forEach(function(a){for(let q=0;q<6;q++)cy(g,.58,.025,q%2?mSy:mSt,xf+a-.08+q*.032,0,0)});
+  bx(g,1.5,.22,1.0,mD,cx,-1.0,0);for(let q=0;q<6;q++)cy(g,.07,.28,mSt,cx-.65+q*.26,-.85,.3,0);
+  g.userData.auRot=function(th,out){sets.forEach(function(st,i){st.sun.rotation.x=th;st.car.rotation.x=out*(.7+i*.1);st.ring.rotation.x=th*.35;st.pls.forEach(function(p){p.rotation.x=-th*1.4})})};
+ }
+ g.userData.spin=inp;g.userData.spin2=main;g.userData.k=1;return g}});
+S('driveshaft','Кардан',{bolts:2,build:gh=>{const g=new T.Group(),sp=new T.Group(),m=mat(gh,0x8a9099,.9,.3);sp.position.set(xf+4.5,0,0);g.add(sp);cy(sp,.08,1.6,m,0,0,0);cy(sp,.14,.2,m,.8,0,0);cy(sp,.14,.2,m,-.8,0,0);g.userData.spin=sp;g.userData.k=1;return g}});
+return{out,L,xf};
+}
+
+var E,AU,P=[],sel=null,dots=[],root=null;
+var S={run:0,rpm:0,v:0,thr:0,th:0,gm:0,gsel:'P',cl:0,gas:0,clp:0,clToggled:0,dead:0,crank:0,xr:0,tab:1,ba:0,coolT:20,oilTemp:20,davl:0,tq:0,hp:0,overheat:0,fuel:100,ranOnce:0,tuneDone:0,_shownFinal:0,odo:0,health:100,fire:0,fireTime:0,coldTemp:20};
+var sph={th:Math.PI*0.5,ph:1.05,r:10},TG=new T.Vector3(1.5,0.35,0),camMode='orb',panOff=new T.Vector3();
+var DMG=true,REPAIR_MODE=false,CAT_MODE=false,CAT_TYPE="random",held=null,cameraDrag=false,lastX=0,lastY=0,dragMoved=0,_pinch=0,_pinchR=0,tapStart={x:0,y:0,t:0},me='R4',mg=0;
+function findPart(kind){return P.find(p=>p.s.kind==kind)}
+function _pn(k){var q=findPart(k);return !!(q&&q.st==2)}
+
+var smokeParts=[],smokeGeo=new T.SphereGeometry(.12,6,4);
+function smokeSpawn(){if(!root||(!S.run&&!S.fire)||smokeParts.length>110)return;var ex=findPart('exh');if(!ex||!ex.group||!ex.group.userData.tipX)return;var u=ex.group.userData,col=S.fire?0x111111:(TUNE.mix<13?0x222222:S.coolT<55?0xe8e8e8:S.thr>.5?0x555555:0xaaaaaa);var m=new T.Mesh(smokeGeo,new T.MeshBasicMaterial({color:col,transparent:true,opacity:.55,depthWrite:false}));m.position.set(u.tipX,u.tipY,u.tipZ);m.userData={vx:.4+Math.random()*.4,vy:.25+Math.random()*.3,vz:(Math.random()-.5)*.2,life:1.6+Math.random()*1.4,age:0,scale:.55+Math.random()*.55};m.scale.setScalar(m.userData.scale);root.add(m);smokeParts.push(m)}
+function updateSmoke(dt){for(var i=smokeParts.length-1;i>=0;i--){var m=smokeParts[i],u=m.userData;u.age+=dt;m.position.x+=u.vx*dt;m.position.y+=u.vy*dt;m.position.z+=u.vz*dt;m.scale.setScalar(u.scale*(1+u.age*1.1));m.material.opacity=Math.max(0,.55*(1-u.age/u.life));if(u.age>=u.life){root.remove(m);m.material.dispose();smokeParts.splice(i,1)}}}
+
+var SAVE_KEY='motorist3d_v21_v3';
+function loadSaves(){try{return JSON.parse(localStorage.getItem(SAVE_KEY))||[]}catch(e){return[]}}
+function writeSaves(a){try{localStorage.setItem(SAVE_KEY,JSON.stringify(a))}catch(e){}}
+var saves=loadSaves(),curIdx=-1;
+function renderGarage(){var g=$('#garage');g.innerHTML='';saves.forEach((s,i)=>{var c=document.createElement('div');c.className='cell'+(s.repair?' repair':'')+(s.cat?' cat':'');var pct=Math.round((s.done||0)/(s.total||1)*100);c.innerHTML='<div class="t">'+s.name+'</div><div class="s">'+s.eng+' · '+(s.au?'АКПП':'МКПП')+'</div><div class="b">'+(s.status||'в сборке')+' · '+(s.total?pct+'%':'')+'</div>';var d=document.createElement('button');d.className='del';d.textContent='✕';d.onclick=e=>{e.stopPropagation();if(confirm('Удалить?')){saves.splice(i,1);writeSaves(saves);renderGarage()}};c.appendChild(d);c.onclick=()=>{curIdx=i;REPAIR_MODE=!!s.repair;CAT_MODE=!!s.cat;$('#menu').hidden=true;newGame(s.eng,s.au,s)};g.appendChild(c)});var add=document.createElement('div');add.className='cell add';add.textContent='+';add.onclick=()=>{saves.push({name:'Мотор '+(saves.length+1),eng:me,au:mg,repair:0,cat:0,status:'в сборке',done:0,total:0,parts:[]});curIdx=saves.length-1;writeSaves(saves);$('#menu').hidden=true;newGame(me,mg)};g.appendChild(add)}
+function autoSave(){if(curIdx<0)return;var done=P.filter(p=>p.st==2).length,s=saves[curIdx];s.done=done;s.total=P.length;s.status=S.dead?'разрушен':S.fire?'горит':S.health<50?'изношен':P.every(p=>p.st==2)?'собран':'в сборке';s.parts=P.map(p=>({k:p.s.kind,st:p.st,qi:p.qi}));s.health=S.health;s.odo=S.odo;writeSaves(saves)}
+
+var lgEl=$('#log');
+function log(t,c){c=c||'';var d=document.createElement('div');d.className=c;d.textContent=t;lgEl.appendChild(d);while(lgEl.children.length>4)lgEl.firstChild.remove();addLog(c==='e'?'err':c==='w'?'warn':c==='g'?'ok':'info',t)}
+var tutEl=$('#tut'),tutDone={};
+function tut(html,key){if(key&&tutDone[key])return;if(key)tutDone[key]=1;tutEl.innerHTML=html;tutEl.hidden=false;clearTimeout(tutEl._t);tutEl._t=setTimeout(()=>tutEl.hidden=true,5500)}
+var AC,osc,gn;
+var VOL=.8,A=null;
+function OUT(){if(!AC._mb){AC._mb=AC.createGain();AC._mb.gain.value=VOL;AC._mb.connect(AC.destination)}return AC._mb}
+var UF=null;
+function ultraFX(on){if(!UF){UF=new T.Group();[-8,1.5,11].forEach(function(x){var c=new T.Mesh(new T.ConeGeometry(2.2,8.9,24,1,true),new T.MeshBasicMaterial({color:0xfff2c0,transparent:true,opacity:.07,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide}));c.position.set(x,2.8,2);UF.add(c)});
+var N=260,pos=new Float32Array(N*3);for(var i=0;i<N;i++){pos[i*3]=(Math.random()-.5)*20;pos[i*3+1]=Math.random()*9-1;pos[i*3+2]=(Math.random()-.5)*14}var g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(pos,3));UF.userData.dust=new T.Points(g,new T.PointsMaterial({color:0xfff0d0,size:.06,transparent:true,opacity:.6,depthWrite:false}));UF.add(UF.userData.dust);sc.add(UF)}UF.visible=on}
+function setGfx(q){var Q={low:{pr:.8,sh:0,ms:512,sp:0,ex:1.1,dec:0},med:{pr:1,sh:1,ms:1024,sp:.3,ex:1.15,dec:1},high:{pr:Math.min(devicePixelRatio,1.5),sh:1,ms:2048,sp:.7,ex:1.2,dec:1},ultra:{pr:Math.min(devicePixelRatio*1.6,2.75),sh:1,ms:4096,sp:1.6,ex:1.3,dec:1}},c=Q[q]||Q.high;
+rd.setPixelRatio(c.pr);rd.shadowMap.enabled=!!c.sh;rd.shadowMap.type=(q=='med')?T.PCFShadowMap:T.PCFSoftShadowMap;sun.castShadow=!!c.sh;sun.shadow.mapSize.set(c.ms,c.ms);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}
+rd.toneMappingExposure=c.ex;spot.intensity=c.sp;spot.castShadow=(q=='ultra');if(spot.shadow.map){spot.shadow.map.dispose();spot.shadow.map=null}
+var e=window.__env;if(e&&e.dec)e.dec.visible=!!c.dec;sc.fog.far=(q=='low')?45:75;ultraFX(q=='ultra');
+sc.traverse(function(o){var ms=o.material;if(!ms)return;(Array.isArray(ms)?ms:[ms]).forEach(function(m){m.needsUpdate=true})});rd.setSize(innerWidth,innerHeight);log('🎮 Графика: '+({low:'низкая',med:'средняя',high:'высокая',ultra:'УЛЬТРА 🔥'}[q]),'g')}
+function snd(){if(AC)return;try{AC=new(window.AudioContext||window.webkitAudioContext)();var m=AC.createGain();m.gain.value=.8;var cp=AC.createDynamicsCompressor();m.connect(cp);cp.connect(OUT());
+var ws=AC.createWaveShaper(),cv=new Float32Array(256);for(var i=0;i<256;i++){cv[i]=Math.tanh((i/128-1)*2.2)}ws.curve=cv;
+var lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=600;lp.Q.value=1.2;var eg=AC.createGain();eg.gain.value=0;
+var o1=AC.createOscillator(),o2=AC.createOscillator(),o3=AC.createOscillator();o1.type='sawtooth';o2.type='square';o3.type='triangle';
+var g1=AC.createGain(),g2=AC.createGain(),g3=AC.createGain();g1.gain.value=.5;g2.gain.value=.2;g3.gain.value=.5;
+o1.connect(g1);o2.connect(g2);o3.connect(g3);g1.connect(ws);g2.connect(ws);g3.connect(ws);ws.connect(lp);lp.connect(eg);eg.connect(m);
+var nb=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate),nd=nb.getChannelData(0);for(var i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
+var ns=AC.createBufferSource();ns.buffer=nb;ns.loop=true;var nf=AC.createBiquadFilter();nf.type='bandpass';nf.frequency.value=800;nf.Q.value=.7;var ng=AC.createGain();ng.gain.value=0;ns.connect(nf);nf.connect(ng);ng.connect(m);
+var so=AC.createOscillator();so.type='sawtooth';so.frequency.value=150;var sf=AC.createBiquadFilter();sf.type='bandpass';sf.frequency.value=600;sf.Q.value=2;var sg=AC.createGain();sg.gain.value=0;so.connect(sf);sf.connect(sg);sg.connect(m);
+var to=AC.createOscillator();to.type='sine';to.frequency.value=2000;var tg=AC.createGain();tg.gain.value=0;to.connect(tg);tg.connect(m);
+var lf=AC.createOscillator();lf.frequency.value=6;var lg=AC.createGain();lg.gain.value=0;lf.connect(lg);lg.connect(eg.gain);
+[o1,o2,o3,ns,so,to,lf].forEach(function(n){n.start()});
+A={o1:o1,o2:o2,o3:o3,lp:lp,eg:eg,nf:nf,ng:ng,so:so,sg:sg,to:to,tg:tg,lf:lf,lg:lg}}catch(e){}}
+var EP={f:0,amp:0,fb:.7,damp:.4,res:160,lump:.3};
+function startEngSynth(){var sr=AC.sampleRate,sp=AC.createScriptProcessor(2048,0,1),ph=0,env=0,d=new Float32Array(4096),di=0,lp=0,flt=AC.createBiquadFilter(),g=AC.createGain();flt.type='lowpass';flt.frequency.value=3500;g.gain.value=0;
+sp.onaudioprocess=function(e){var o=e.outputBuffer.getChannelData(0),f=EP.f,dec=f>1?Math.pow(.05,1/Math.max(8,.45*sr/f)):.9,dl=Math.max(30,Math.min(4000,(sr/EP.res)|0));
+for(var i=0;i<o.length;i++){ph+=f/sr;if(ph>=1){ph-=1;env=EP.amp*(1-EP.lump+Math.random()*EP.lump*2)}var x=env*(Math.random()*2-1)*.6+env*Math.sin(ph*18.85)*.4;env*=dec;
+var rd=d[(di-dl+4096)&4095];lp+=(rd-lp)*EP.damp;var y=x+lp*EP.fb;d[di]=y;di=(di+1)&4095;o[i]=y*.4}};
+sp.connect(flt);flt.connect(g);g.connect(OUT());A.sg2=g}
+function popBurst(v){if(!AC||!A)return;var t=AC.currentTime;A.ng.gain.cancelScheduledValues(t);A.ng.gain.setValueAtTime(v*4,t);A.ng.gain.setTargetAtTime(.02,t+.01,.05)}
+function audioUpdate(dt){if(!AC||!A||!E)return;var t=AC.currentTime,run=S.run&&S.rpm>100,r=S.rpm,f=r/60*E.n/2,thr=S.thr,ex=findPart('exh'),mu=ex&&ex.st==2,lim=TUNE.lim||E.redline;
+var cut=(r>=lim-80&&thr>.5)?(Math.sin(t*110)>0?1:.15):1;
+if(!A.syn){A.syn=1;try{startEngSynth()}catch(e){}}
+EP.f=run?Math.max(8,f):0;EP.amp=run?(.2+thr*.8)*cut*(mu?1:1.5)*(1+(TUNE.exh||0)*.12)*(S.crank?.4:1):0;EP.res=110+r*.03;EP.fb=mu?.78:.9;EP.damp=mu?.3:.6;EP.lump=r<1100?.5:.18;if(A.sg2)A.sg2.gain.setTargetAtTime(run?.55:0,t,.04);
+A.eg.gain.setTargetAtTime(run?(.1+thr*.14)*cut*(mu?1:1.7)*.3:0,t,.03);
+A.o1.frequency.setTargetAtTime(Math.max(18,f),t,.02);A.o2.frequency.setTargetAtTime(Math.max(36,f*2.01),t,.02);A.o3.frequency.setTargetAtTime(Math.max(9,f*.5),t,.02);
+A.lp.frequency.setTargetAtTime((mu?300:900)+r*.45+thr*900,t,.05);A.lg.gain.value=(run&&r<1100)?.03:0;A.lf.frequency.value=Math.max(2,f/4);
+A.nf.frequency.setTargetAtTime(500+r*.4,t,.1);if(!S._pop)A.ng.gain.setTargetAtTime(run?(.02+thr*.09)*(r/(E.redline||7000)+.3):0,t,.05);
+A.sg.gain.setTargetAtTime(S.crank?.06:0,t,.03);A.so.frequency.setTargetAtTime(150+Math.sin(t*14)*15,t,.02);
+var tb=findPart('turbo'),th=(tb&&tb.st==2&&run)?Math.min(1,thr*r/(E.redline||7000)*1.4):0;A.tg.gain.setTargetAtTime(th*.03*(TUNE.boost>0?1:.5),t,.1);A.to.frequency.setTargetAtTime(1800+th*3500,t,.1);
+if(run&&S._pthr>.6&&thr<.3&&r>3000&&(!mu||TUNE.mix<13)){popBurst(.07)}S._pthr=thr;
+if(S.fire&&Math.random()<dt*18)popBurst(.1)}
+function beep(f,dur,type,vol){if(!AC)return;dur=dur||.05;type=type||'sine';vol=vol||.05;var o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;g.gain.value=vol;o.connect(g);g.connect(OUT());o.start();o.stop(AC.currentTime+dur)}
+function clickBolt(prog){if(!AC)return;var o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=1200+800*prog;g.gain.value=.018;o.connect(g);g.connect(OUT());o.start();o.stop(AC.currentTime+.025)}
+
+function newGame(e,au,restore){try{E=ENG[e];AU=!!au;if(!E){addLog('err','Нет двигателя '+e);return}if(root)sc.remove(root);smokeParts.forEach(m=>{try{m.material.dispose()}catch(e){}});smokeParts=[];root=new T.Group();sc.add(root);var r=specs(E,AU);P=[];dots=[];held=null;sel='block';panOff.set(0,0,0);sph.th=Math.PI*0.5;sph.ph=1.05;sph.r=10;TG.set(1.5,0.35,0);var sd=SEASON_DATA[SEASON];Object.assign(S,{run:0,rpm:0,v:0,thr:0,th:0,gm:0,gsel:'P',cl:0,dead:0,crank:0,xr:1,tab:1,fuelL:0,oilL:0,coolL:0,coolT:sd.temp,oilTemp:sd.temp,davl:0,tq:0,hp:0,overheat:0,fuel:100,ranOnce:0,tuneDone:0,_shownFinal:0,health:restore?(restore.health||60):100,odo:restore?(restore.odo||0):0,clToggled:0,fire:0,prevGear:0,shiftT:1,fireTime:0,coldTemp:sd.temp});$('#bx').classList.add('on');$('#cl').classList.remove('toggled');r.out.forEach((s,idx)=>{var p={s:s,st:0,ghost:s.build(1),group:null,dots:[],queue:[],qi:0,t:1,idx:idx,cond:100};try{p.bb=new T.Box3().setFromObject(p.ghost)}catch(e){p.bb=new T.Box3()}p.ghost.visible=false;root.add(p.ghost);P.push(p);if(restore&&restore.parts&&restore.parts[idx]&&restore.parts[idx].st==2){p.group=s.build(0);p.group.position.y=0;root.add(p.group);p.st=2;p.t=1}});if(REPAIR_MODE&&!restore){var rand=a=>a[Math.floor(Math.random()*a.length)],removable=P.filter(p=>p.s.kind!='block');for(var i=0;i<3+Math.floor(Math.random()*3);i++){var p=rand(removable);if(p.st==2&&p.group){root.remove(p.group);p.group=null;p.st=0}}S.health=60+Math.random()*20}if(CAT_MODE&&!restore){var cats=['fire','belt_break','oil_leak','head_blow','rad_burst','wiring','pump_fail','alt_fail','spark_fail','injector_fail'];var cid=(typeof CAT_TYPE!=='undefined'&&CAT_TYPE&&CAT_TYPE!=='random')?CAT_TYPE:cats[Math.floor(Math.random()*cats.length)];if(cats.indexOf(cid)<0)cid=cats[Math.floor(Math.random()*cats.length)];applyCat(cid)}$('#ttl').textContent=(REPAIR_MODE?'🔧 ':'')+(CAT_MODE?'💥 ':'')+E.nm+' · '+(AU?'АКПП':'МКПП');lgEl.innerHTML='';if(REPAIR_MODE)log('🔧 Ремонт','w');else if(CAT_MODE)log('💥 Катастрофа!','e');else log('Выбери деталь внизу','g');applySeason();P.forEach(function(p){if(p.s.shell)xr(p)});gearUI();tray();ghost();tab(1);tut('👋 <b>1 палец</b> — крутить · <b>2 пальца</b> — двигать и зум · <b>✋</b> — сдвиг одним пальцем · <b>👁</b> — рентген (видно поршни)','init');$('#fireOverlay').hidden=!S.fire;$('#fireBtn').hidden=!S.fire;addLog('info','Игра: '+E.nm)}catch(err){addLog('err','newGame: '+(err.message||err))}}
+function applyCat(id,force){if(!DMG&&!force){log('Поломки выключены в настройках','w');return}
+ var rm=kind=>{var p=P.find(x=>x.s.kind==kind&&x.group);if(p){root.remove(p.group);p.group=null;p.st=0;p.qi=0;p.dots=[];return p.s.label}return null};
+ var names={fire:'Пожар!',belt_break:'Оборван ремень ГРМ',oil_leak:'Пробит поддон — течь масла',head_blow:'Пробита прокладка ГБЦ',rad_burst:'Лопнул радиатор',wiring:'Сгорели провода ВВ',pump_fail:'Клинит помпу',alt_fail:'Генератор сгорел',spark_fail:'Свечи вышли из строя',injector_fail:'Забиты форсунки',piston_burn:'Прогорел поршень',crank_seize:'Заклинил коленвал',clutch_burn:'Сгорело сцепление',gear_strip:'Разрушена КПП',battery_dead:'Сел аккумулятор',overheat:'Перегрев двигателя'};
+ var msg=names[id]||id;
+ if(id=='fire'){S.fire=1;S.fireTime=0;S.fireLvl=1;$('#fireOverlay').hidden=false;$('#fireBtn').hidden=false;S.health-=35}
+ else if(id=='belt_break'){rm('belt');rm('beltCover');S.health-=25}
+ else if(id=='oil_leak'){rm('pan');S.health-=20;S.davl=0}
+ else if(id=='head_blow'){rm('head');rm('hgasket');S.health-=40}
+ else if(id=='rad_burst'){rm('rad');rm('coolant');S.health-=25;S.coolT=Math.min(S.coolT+30,120)}
+ else if(id=='wiring'){rm('wire');rm('coil');S.health-=15}
+ else if(id=='pump_fail'){rm('pump');S.health-=20}
+ else if(id=='alt_fail'){rm('alt');S.health-=15}
+ else if(id=='spark_fail'){rm('spark');S.health-=20}
+ else if(id=='injector_fail'){rm('injectors');S.health-=15}else if(id=='piston_burn'){rm('piston');S.health-=30}else if(id=='crank_seize'){rm('crank');rm('piston');S.health-=45}else if(id=='clutch_burn'){rm('clutch');S.health-=10}else if(id=='gear_strip'){rm('gbox');S.health-=20}else if(id=='battery_dead'){S.batt=0;S.run=0;S.rpm=0}else if(id=='overheat'){S.coolT=118}
+ log('💥 '+msg,'e');
+ tray();ghost();autoSave();
+}
+
+function next(){return P.find(p=>p.s.kind==sel&&p.st==0)}
+function ghost(){P.forEach(p=>p.ghost.visible=false);var p=next();if(p&&S.tab==1)p.ghost.visible=true}
+var TRAYORD=[],TRAYKEY='';
+function tray(){var key=(E?E.nm:'')+P.length+(AU?1:0);if(key!==TRAYKEY){TRAYKEY=key;var ks=[];P.forEach(function(p){if(ks.indexOf(p.s.kind)<0)ks.push(p.s.kind)});for(var i=ks.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=ks[i];ks[i]=ks[j];ks[j]=t}TRAYORD=ks}var m=new Map();P.forEach(p=>{var k=p.s.kind;if(!m.has(k))m.set(k,{l:p.s.label,n:0,d:0,u:0});var o=m.get(k);o.n++;if(p.st)o.d++;if(p.st==2)o.u++});var t=$('#tray');t.innerHTML='';Array.from(m.keys()).sort(function(a,b){return TRAYORD.indexOf(a)-TRAYORD.indexOf(b)}).forEach(k=>{var o=m.get(k);var b=document.createElement('button');b.textContent=(o.u==o.n?'✓':'')+o.l+(o.n>1?' '+o.d+'/'+o.n:'');b.className=(sel==k?'on ':'')+(o.d==o.n?'dn':'');b.onclick=()=>{sel=k;tray();ghost()};t.appendChild(b)})}
+function place(p){if(S.dead){S.dead=0;S.health=Math.max(S.health,60);S.overheat=0;S.coolT=Math.min(S.coolT,90)}if(p.s.kind!='block'&&!P[0].st){log('Сначала блок','e');return}if(p.s.kind=='piston'&&P.some(q=>q.s.kind=='liner'&&q.st==0)){log('Сначала гильзы цилиндров','e');return}if(p.s.kind=='head'&&P.some(q=>q.s.kind=='hgasket'&&q.st==0)){log('Сначала прокладка ГБЦ','e');return}if(p.s.kind=='pan'&&P.some(q=>q.s.kind=='pgasket'&&q.st==0)){log('Сначала прокладка поддона','e');return}if(p.group){root.remove(p.group);p.group=null}p.group=p.s.build(0);p.group.position.y=5;p.t=0;root.add(p.group);p.ghost.visible=false;p.st=1;p.queue=[];if(p.s.oil)p.queue.push('oil');if(p.s.bolts&&!p.s.noBolt)p.queue.push('bolt');p.qi=0;if(p.s.shell)xr(p);if(!p.queue.length)p.st=2;else{showDots(p);var k=p.queue[p.qi];if(k=='bolt')tut('🔩 <b>Зажми</b> зелёную','bolt');if(k=='oil')tut('🛢 <b>Зажми</b> синюю','oil')}beep(300);log('Поставлено: '+p.s.label);tray();ghost();autoSave()}
+function dotPos(p,k){var b=p.bb,c=b.getCenter(new T.Vector3()),n=p.s.bolts,V=(x,y,z)=>new T.Vector3(x,y,z);if(k=='oil')return[c];if(p.s.ring){var o=[];for(var q=0;q<n;q++){var w=q/n*6.283;o.push(V(p.s.x+.12,cos(w)*p.s.ring,sin(w)*p.s.ring))}return o}if(n==1)return[V(c.x,b.max.y+.1,c.z)];if(n==2)return[V(b.min.x+.2,b.max.y,c.z),V(b.max.x-.2,b.max.y,c.z)];return[V(b.min.x+.2,b.max.y,b.min.z+.2),V(b.max.x-.2,b.max.y,b.min.z+.2),V(b.min.x+.2,b.max.y,b.max.z-.2),V(b.max.x-.2,b.max.y,b.max.z-.2)]}
+function showDots(p){var k=p.queue[p.qi];p.dots=[];dotPos(p,k).forEach(v=>{var m=new T.Mesh(new T.SphereGeometry(.2,8,6),new T.MeshBasicMaterial({color:k=='oil'?0x38bdf8:0x35ff7a,transparent:true,opacity:.85,depthTest:false}));m.renderOrder=10;m.position.copy(v);root.add(m);var d={m,p,k,pr:0,done:0};p.dots.push(d);dots.push(d)})}
+var prgEl=$('#prg');
+function drawPrg(prog,color){if(prog<=0||prog>=1){prgEl.hidden=true;return}prgEl.hidden=false;var r=38,C=2*PI*r;prgEl.innerHTML='<svg width="88" height="88"><circle cx="44" cy="44" r="'+r+'" stroke="#1f2937" stroke-width="7" fill="none"/><circle cx="44" cy="44" r="'+r+'" stroke="'+color+'" stroke-width="7" fill="none" stroke-dasharray="'+C+'" stroke-dashoffset="'+C*(1-prog)+'" transform="rotate(-90 44 44)" stroke-linecap="round"/></svg>'}
+function finishDot(d){
+ d.done=1;if(d.m&&d.m.parent)root.remove(d.m);dots=dots.filter(x=>x!==d);
+ var p=d.p;
+ if(d.k==='unbolt'){
+   beep(400,.04,'square',.03);
+   if(p.dots.every(x=>x.done)){
+     p.qi++;
+     if(p.qi>=p.queue.length)finishRemove(p);
+     else showRemoveDots(p);
+   }
+   return;
+ }
+ if(d.k=='bolt'){
+   cy(p.group,.09,.12,new T.MeshStandardMaterial({color:0xaab0b8,metalness:1,roughness:.3}),d.m.position.x,d.m.position.y,d.m.position.z,0);
+   beep(700,.04,'square',.03);
+ } else {
+   p.group.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.roughness=.4}});
+   beep(500,.05,'sine',.03);
+ }
+ if(p.dots.every(x=>x.done)){
+   p.qi++;
+   if(p.qi>=p.queue.length){p.st=2;log('✓ '+p.s.label,'g');tray();autoSave()}
+   else showDots(p);
+ }
+}
+
+function xr(p){if(!p.group)return;p.group.traverse(function(o){
+ if(!o.isMesh||!o.material)return;
+ // Шестерни/валы КПП не прячем — корпус становится прозрачным
+ var isGear=o.material.color&&(o.material.metalness>0.9||(o.material.color.getHex&&(o.material.color.getHex()===0xc4a35a||o.material.color.getHex()===0xaa7744||o.material.color.getHex()===0xb8bec6)));
+ if(S.xr){
+   if(isGear){o.material.transparent=false;o.material.opacity=1;o.material.depthWrite=true;}
+   else{o.material.transparent=true;o.material.opacity=0.16;o.material.depthWrite=false;}
+ }else{
+   o.material.transparent=false;o.material.opacity=1;o.material.depthWrite=true;
+ }
+ o.material.needsUpdate=true;
+})}
+
+function hitAt(cx,cy,objs){try{rc.setFromCamera(new T.Vector2(cx/innerWidth*2-1,-cy/innerHeight*2+1),cam);return rc.intersectObjects(objs,true)[0]||null}catch(e){return null}}
+var _ptrs={},PANMODE=false,_mid=null;
+var rc=new T.Raycaster();
+var cv=$('#c');
+function onPointerDown(e){if(e.target!==cv&&e.target!==document.body)return;_ptrs[e.pointerId]={x:e.clientX,y:e.clientY};var ps=Object.values(_ptrs);if(ps.length==1){cameraDrag=true;lastX=e.clientX;lastY=e.clientY;dragMoved=0;tapStart={x:e.clientX,y:e.clientY,t:Date.now()};if(dots.length&&!S.run&&S.tab==1){var h=hitAt(e.clientX,e.clientY,dots.map(d=>d.m));if(h&&h.object){held=dots.find(x=>x.m===h.object);cameraDrag=false}}}else if(ps.length==2){cameraDrag=false;held=null;drawPrg(0);var dx=ps[0].x-ps[1].x,dy=ps[0].y-ps[1].y;_pinch=Math.hypot(dx,dy);_pinchR=sph.r;_mid={x:(ps[0].x+ps[1].x)/2,y:(ps[0].y+ps[1].y)/2}}}
+function onPointerMove(e){var p=_ptrs[e.pointerId];if(!p)return;p.x=e.clientX;p.y=e.clientY;var ps=Object.values(_ptrs);if(held)return;if(ps.length==1&&cameraDrag){var dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;dragMoved+=Math.abs(dx)+Math.abs(dy);if(PANMODE){var _k1=sph.r*.0022;panOff.x-=Math.sin(sph.th)*dx*_k1;panOff.z+=Math.cos(sph.th)*dx*_k1;panOff.y+=dy*_k1}else{sph.th-=dx*.0045;sph.ph=clamp(sph.ph-dy*.0045,.12,PI-.15)}}else if(ps.length==2){var dx=ps[0].x-ps[1].x,dy=ps[0].y-ps[1].y,d=Math.hypot(dx,dy);if(d>0)sph.r=clamp(_pinchR*_pinch/d,3,25);var mx=(ps[0].x+ps[1].x)/2,my=(ps[0].y+ps[1].y)/2;if(_mid){var _k=sph.r*.0022,ddx=mx-_mid.x,ddy=my-_mid.y;panOff.x-=Math.sin(sph.th)*ddx*_k;panOff.z+=Math.cos(sph.th)*ddx*_k;panOff.y+=ddy*_k}_mid={x:mx,y:my}}}
+function onPointerUp(e){if(!_ptrs[e.pointerId])return;delete _ptrs[e.pointerId];var ps=Object.values(_ptrs);if(held){held=null;drawPrg(0)}else if(cameraDrag&&dragMoved<10&&Date.now()-tapStart.t<400&&S.tab==1){var g=next(),h=g?hitAt(tapStart.x,tapStart.y,[g.ghost]):null;if(h)place(g);else if(S.remMode)tapRemove(tapStart.x,tapStart.y)}if(ps.length==0)cameraDrag=false}
+function onPointerCancel(e){delete _ptrs[e.pointerId];if(Object.values(_ptrs).length==0){cameraDrag=false;held=null;drawPrg(0)}}
+window.addEventListener('pointerdown',onPointerDown,{passive:false});window.addEventListener('pointermove',onPointerMove,{passive:false});window.addEventListener('pointerup',onPointerUp,{passive:false});window.addEventListener('pointercancel',onPointerCancel,{passive:false});
+cv.addEventListener('touchstart',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});cv.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+cv.addEventListener('wheel',e=>{sph.r=clamp(sph.r*(1+e.deltaY*.001),3,25)},{passive:true});
+document.querySelectorAll('#cams button').forEach(b=>{b.onclick=()=>{
+ camMode=b.dataset.c;
+ document.querySelectorAll('#cams button').forEach(x=>x.classList.toggle('on',x===b));
+ // Двигатель вдоль X: шкив −X, КПП +X. Вырез КПП смотрит на +Z → камера с +Z
+ if(camMode=='top'){sph.ph=0.2;sph.th=Math.PI*0.5;sph.r=12;TG.set(1.3,0,0)}
+ else if(camMode=='side'){sph.ph=1.05;sph.th=Math.PI*0.5;sph.r=9.5;TG.set(1.5,0.3,0)}
+ else if(camMode=='front'){sph.ph=1.1;sph.th=Math.PI;sph.r=9;TG.set(-0.6,0.35,0)}
+ else if(camMode=='rot90'){sph.th+=Math.PI/2}
+ else if(camMode=='orb'){sph.ph=1.0;sph.th=Math.PI*0.42;sph.r=11;TG.set(1.4,0.4,0)}
+ else{sph.ph=1.05;sph.th=Math.PI*0.5;sph.r=10;TG.set(1.5,0.35,0)}
+ panOff.set(0,0,0);
+}});
+
+$('#bx').onclick=e=>{S.xr=S.xr?0:1;e.target.classList.toggle('on',S.xr);P.forEach(p=>{if(p.s.shell)xr(p)});log(S.xr?'Рентген':'Обычно')};
+$('#ba').onclick=async()=>{if(S.ba)return;S.ba=1;for(var i=0;i<P.length;i++){var p=P[i];if(p.st==2)continue;if(!p.group){sel=p.s.kind;place(p)}await new Promise(r=>setTimeout(r,50));while(p.st==1)p.dots.slice().forEach(finishDot)}S.ba=0;log('⚡ Готово','g')};
+$('#bd').onclick=()=>openDiag();$('#place').onclick=()=>{
+  var p=next();
+  if(p){place(p);return}
+  // Разборка: выбранный тип уже стоит
+  var list=P.filter(x=>x.s.kind==sel&&x.st==2);
+  if(!list.length){log('Нечего снимать — выбери деталь','w');return}
+  var q=list[list.length-1];
+  startRemove(q);
+};
+$('#bm').onclick=()=>$('#hmenu').hidden=false;
+var PAN=window.__PAN={x:0,y:0};document.querySelectorAll('#pan button').forEach(function(b){var d=b.dataset.p,v={U:[0,1],D:[0,-1],L:[-1,0],R:[1,0]}[d];b.onpointerdown=function(e){e.preventDefault();PAN.x=v[0];PAN.y=v[1]};['pointerup','pointerleave','pointercancel'].forEach(function(ev){b['on'+ev]=function(){PAN.x=0;PAN.y=0}})});
+$('#f-fuel').onclick=function(){if(!_pn('tank')){log('Нет бензобака — поставь «Топливный бак»','e');return}S.fuelL=Math.min(50,S.fuelL+10);beep(500);log('⛽ +10 л топлива','g')};
+$('#f-oil').onclick=function(){if(!_pn('pan')){log('Нет масляного поддона','e');return}S.oilL=Math.min(6,S.oilL+1);beep(450);log('🛢 +1 л масла','g')};
+$('#f-cool').onclick=function(){if(!(_pn('rad')&&_pn('coolant'))){log('Нужны радиатор и шланги ОЖ','e');return}S.coolL=Math.min(6,S.coolL+1);beep(480);log('💧 +1 л антифриза','g')};
+$('#f-all').onclick=function(){var a=[];if(_pn('tank')){S.fuelL=40;a.push('топливо')}if(_pn('pan')){S.oilL=4.5;a.push('масло')}if(_pn('rad')&&_pn('coolant')){S.coolL=5.5;a.push('антифриз')}log(a.length?'🧰 Залито: '+a.join(', '):'Нечего заливать — нет бака/поддона/радиатора',a.length?'g':'e')};
+$('#f-drain').onclick=function(){S.fuelL=0;S.oilL=0;S.coolL=0;log('⬇ Всё слито','w')};
+$('#h-close').onclick=()=>$('#hmenu').hidden=true;$('#h-tune').onclick=()=>{$('#hmenu').hidden=true;openTune()};$('#h-diag').onclick=()=>{$('#hmenu').hidden=true;openDiag()};$('#h-log').onclick=()=>{$('#hmenu').hidden=true;$('#blog').click()};function syncT(){var t=$('#test'),a=t.classList.contains('hfl'),b=t.classList.contains('hctl');$('#tg-fl').textContent=a?'⛽ Жидкости ▸':'⛽ Жидкости ▾';$('#tg-ctl').textContent=b?'🎛 Управление ▸':'🎛 Управление ▾';$('#tg-min').textContent=(a&&b)?'⬆ Показать всё':'▁ Минимум';$('#tg-fl').classList.toggle('on',!a);$('#tg-ctl').classList.toggle('on',!b)}
+$('#tg-fl').onclick=function(){$('#test').classList.toggle('hfl');syncT()};$('#tg-ctl').onclick=function(){$('#test').classList.toggle('hctl');syncT()};$('#tg-min').onclick=function(){var t=$('#test'),v=!(t.classList.contains('hfl')&&t.classList.contains('hctl'));t.classList.toggle('hfl',v);t.classList.toggle('hctl',v);syncT()};syncT();
+$('#cpan').onclick=function(){PANMODE=!PANMODE;this.classList.toggle('on',PANMODE);log(PANMODE?'✋ Сдвиг: один палец двигает камеру':'🔄 Вращение: один палец крутит','w')};$('#bdx').onclick=function(){var f=$('#data').classList.toggle('full');document.body.classList.toggle('dfull',f);this.classList.toggle('on',f)};$('#menu-h').onclick=$('#m-set').onclick=()=>{$('#hmenu').hidden=false};$('#m-cred').onclick=()=>{$('#hmenu').hidden=false;setTimeout(function(){var c=$('#hmenu .credits');if(c)c.scrollIntoView()},50)};$('#h-garage').onclick=()=>{$('#hmenu').hidden=true;$('#menu').hidden=false};
+$('#h-vol').oninput=function(){VOL=this.value/100;$('#h-vol-v').textContent=this.value+'%';if(AC&&AC._mb)AC._mb.gain.value=VOL};
+$('#h-gfx').onchange=function(){setGfx(this.value);try{localStorage.setItem('mt_gfx',this.value)}catch(e){}};
+try{var _q=localStorage.getItem('mt_gfx');if(_q){$('#h-gfx').value=_q;setTimeout(function(){setGfx(_q)},0)}}catch(e){}
+$('#nosb').onclick=function(){if(!S.run){log('Сначала заведи двигатель','e');return}if(S.nosCd>0){log('NOS перезаряжается '+Math.ceil(S.nosCd)+' с','w');return}S.nos=4;S.nosCd=14;log('💨 NOS! +35% мощности','g');popBurst(.3)};
+$('#bs').onclick=()=>openTune();$('#brm').onclick=function(){S.remMode=!S.remMode;this.classList.toggle('on',S.remMode);log(S.remMode?'🔩 Режим снятия ВКЛ: нажми на деталь дважды':'Режим снятия выкл','w')};$('#bdis').onclick=()=>openDiag();
+$('#blog').onclick=()=>{$('#logpanel').hidden=false;renderLogs()};$('#logclose').onclick=()=>$('#logpanel').hidden=true;
+$('#logclear').onclick=()=>{LOGS.length=0;renderLogs()};$('#logcopy').onclick=()=>{var t=LOGS.map(l=>l.time+' ['+l.type+'] '+l.msg).join('\n');if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>log('Скопировано','g'))};
+function tab(t){S.tab=t;$('#t1').classList.toggle('on',t==1);$('#t2').classList.toggle('on',t==2);$('#trayWrap').hidden=t!=1;$('#place').hidden=t!=1;$('#test').hidden=t!=2;ghost()}
+$('#t1').onclick=()=>tab(1);$('#t2').onclick=()=>tab(2);$('#tn').onclick=()=>openTune();
+
+
+/* ===== РАЗБОРКА: открути болты → деталь снимается ===== */
+var _sr=null,_srT=0;
+function hl(p,on){if(!p||!p.group)return;p.group.traverse(function(o){if(o.isMesh&&o.material&&o.material.emissive&&p.s.kind!=='gbox')o.material.emissive.setHex(on?0x7a5a00:0)})}
+function tapRemove(cx,cy){rc.setFromCamera(new T.Vector2(cx/innerWidth*2-1,-cy/innerHeight*2+1),cam);var hs=rc.intersectObjects(P.filter(function(p){return p.group&&p.st===2}).map(function(p){return p.group}),true),f=null,fb=null;
+for(var i=0;i<hs.length;i++){var o=hs[i].object,p=P.find(function(q){return q.group&&q.st===2&&q.group.getObjectById(o.id)});if(!p)continue;var b=blockers(p);if(!b.length){f=p;break}fb=fb||{p:p,b:b}}
+if(!f){if(fb)log(fb.p.s.label+' — '+blkMsg(fb.b),'e');return}
+if(_sr===f&&Date.now()-_srT<5000){hl(f,0);_sr=null;if(S.run){S.run=0;S.crank=0}sel=f.s.kind;tray();startRemove(f);return}
+hl(_sr,0);_sr=f;_srT=Date.now();hl(f,1);log('Выбрано: '+f.s.label+' — нажми ещё раз, чтобы снять','w')}
+var flames=[],FT=(function(){var c=document.createElement('canvas');c.width=c.height=64;var x=c.getContext('2d'),g=x.createRadialGradient(32,32,2,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.35,'rgba(255,200,80,.8)');g.addColorStop(1,'rgba(255,60,0,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new T.CanvasTexture(c)})();
+var fireL=new T.PointLight(0xff6a1a,0,14);sc.add(fireL);
+function spawnFlame(sm){var sp=new T.Sprite(new T.SpriteMaterial({map:FT,color:sm?0x222222:0xff9030,blending:sm?T.NormalBlending:T.AdditiveBlending,transparent:true,depthWrite:false,opacity:.9}));var _l=S.fireLvl||1;sp.position.set((Math.random()-.5)*(E?E.n*.5:3)*(.8+_l*.4)+1.5,.3+Math.random()*(1.5+_l),(Math.random()-.5)*(1.4+_l*.6));var s0=(.5+Math.random()*.7)*(.8+_l*.3);sp.scale.setScalar(s0);sp.userData={age:0,life:sm?2.5+Math.random()*1.5:.7+Math.random()*.7,vy:sm?1.4+Math.random():1.6+Math.random()*1.8,vx:(Math.random()-.5)*.5,s0:s0,sm:sm};root.add(sp);flames.push(sp)}
+function spawnFoam(){var sp=new T.Sprite(new T.SpriteMaterial({map:FT,color:0xf2f6ff,transparent:true,depthWrite:false,opacity:.8}));sp.position.set(1.5+(Math.random()-.5)*4,1+Math.random()*2,(Math.random()-.5)*2.2);sp.scale.setScalar(.6);sp.userData={age:0,life:.7,vy:.3,vx:(Math.random()-.5)*.6,s0:.6,sm:1};root.add(sp);flames.push(sp)}
+function updateFlames(dt){P.forEach(function(p){if(p.s.kind==='spark'&&p.group&&p.st===2&&p.group.userData.sparks)p.group.userData.sparks.forEach(function(sp){sp.material.opacity=(S.run&&S.rpm>150)?Math.pow(Math.max(0,Math.cos(S.th*.5+sp.userData.ph)),24):0})});if(S.fire&&E&&root){var lv=S.fireLvl=Math.min(4,(S.fireLvl||1)+dt*(S.ext?-.7:.08*(S.run?1.6:1)));
+if(lv<=0){S.fire=0;S.fireLvl=0;S.fireTime=0;S.ext=0;$('#fireOverlay').hidden=true;$('#fireBtn').hidden=true;log('🧯 Пожар потушен','g')}
+else if(flames.length<320){var nF=Math.round(2+lv*2.5);if(S.ext){for(var k=0;k<4;k++)spawnFoam()}for(var k=0;k<nF;k++)spawnFlame(0);if(Math.random()<.4+lv*.2)spawnFlame(1)}}
+fireL.intensity=S.fire?((20+Math.random()*25)*(S.fireLvl||1)):0;if(S.fire)fireL.position.set(1.5+(Math.random()-.5),2.5,.5);
+for(var i=flames.length-1;i>=0;i--){var m=flames[i],u=m.userData;u.age+=dt;var k=u.age/u.life;m.position.y+=u.vy*dt;m.position.x+=u.vx*dt+Math.sin(u.age*9+i)*dt*.3;m.scale.setScalar(u.s0*(u.sm?1+k*2.2:(1+k*.6)*(1-k*.6)));m.material.opacity=u.sm?.55*(1-k):.9*(1-k);if(!u.sm)m.material.color.setHex(k<.4?0xffd060:k<.7?0xff7a1a:0xb02a00);if(k>=1){if(m.parent)m.parent.remove(m);m.material.dispose();flames.splice(i,1)}}}
+var WX={pts:null,type:'none'};
+function applySeason(){var e=window.__env;if(!e)return;var cfg={summer:[0x7fc4f0,0xfff1d8,1.3,0x8ab0e0],winter:[0xcfdce8,0xdfe9ff,1.0,0xa8c0e0],autumn:[0xc9895a,0xffd2a0,.95,0xa09080],night:[0x070b14,0x7f9bd0,.32,0x202840]}[SEASON]||[0x7fc4f0,0xfff1d8,1.3,0x8ab0e0];
+e.winM.color.setHex(cfg[0]);sun.color.setHex(cfg[1]);sun.intensity=cfg[2];hemi.color.setHex(cfg[3]);hemi.intensity=SEASON=='night'?.2:.48;
+var want=SEASON=='winter'?'snow':SEASON=='autumn'?'rain':'none';
+if(WX.type!=want){if(WX.pts){sc.remove(WX.pts);WX.pts.geometry.dispose()}WX.pts=null;WX.type=want;if(want!='none'){var N=500,pos=new Float32Array(N*3);for(var i=0;i<N;i++){pos[i*3]=(Math.random()-.5)*44;pos[i*3+1]=Math.random()*12-1;pos[i*3+2]=-21-Math.random()*14}var g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(pos,3));WX.pts=new T.Points(g,new T.PointsMaterial({color:want=='snow'?0xffffff:0x9fb8d8,size:want=='snow'?.18:.08,transparent:true,opacity:.85}));sc.add(WX.pts)}}}
+function updateWeather(dt){updateFlames(dt);if(UF&&UF.visible){var da=UF.userData.dust.geometry.attributes.position;for(var i=0;i<da.count;i++){var yy=da.getY(i)+dt*(.08+.05*Math.sin(i));if(yy>8)yy=-1;da.setY(i,yy);da.setX(i,da.getX(i)+Math.sin(i+yy)*dt*.05)}da.needsUpdate=true}if(!WX.pts)return;var a=WX.pts.geometry.attributes.position,v=WX.type=='snow'?1.2:9;for(var i=0;i<a.count;i++){var y=a.getY(i)-v*dt;if(y<-1.5)y=11;a.setY(i,y);if(WX.type=='snow')a.setX(i,a.getX(i)+Math.sin(y*2+i)*dt*.3)}a.needsUpdate=true}
+var DEP={battery:['cables'],starter:['cables'],exh:['catalyst','turbo'],liner:['piston'],crank:['piston','pan','belt','fly'],piston:['head','pan'],cam:['head','belt'],hgasket:['head'],head:['intake','spark','wire','coil'],pgasket:['pan'],belt:['beltCover'],fly:['clutch'],clutch:['gbox'],gbox:['driveshaft'],intake:['injectors','fuelLine','throttle','airFilter'],injectors:['fuelLine'],throttle:['airFilter'],spark:['wire','coil'],coil:['wire'],rad:['coolant']};
+function blockers(p){return P.filter(function(q){return q!==p&&q.st>=2&&(p.s.kind==='block'||(DEP[p.s.kind]||[]).indexOf(q.s.kind)>=0)})}
+function blkMsg(bl){return 'Сначала сними: '+bl.slice(0,3).map(function(x){return x.s.label}).join(', ')+(bl.length>3?' …':'')}
+function startRemove(p){
+  if(!p||p.st!==2||!p.group)return;
+  if(S.run){log('Заглуши двигатель','e');return}
+  if(p.st===3)return;
+  // Блок — только если всё остальное снято
+  if(p.s.kind==='block'){
+    var other=P.filter(function(x){return x!==p&&x.st===2});
+    if(other.length){
+      log('Сначала сними всё с блока: '+other.slice(0,3).map(function(x){return x.s.label}).join(', '),'e');
+      return;
+    }
+  }
+  // Нельзя снять блок-зависимые если... actually OK
+
+  var bl0=blockers(p);if(bl0.length){log(blkMsg(bl0),'e');return}
+  p.st=3; // removing
+  p.queue=[];
+  if(p.s.bolts&&!p.s.noBolt)p.queue.push('unbolt');
+  p.qi=0;
+  if(!p.queue.length){finishRemove(p);return}
+  showRemoveDots(p);
+  tut('🔧 <b>Зажми</b> красные точки — открути','unbolt');
+  log('Открути: '+p.s.label,'w');
+}
+function showRemoveDots(p){
+  p.dots=[];
+  var k=p.queue[p.qi];
+  try{
+    if(!p.bb)p.bb=new T.Box3().setFromObject(p.group);
+  }catch(e){p.bb=new T.Box3()}
+  dotPos(p,'bolt').forEach(function(v){
+    var m=new T.Mesh(new T.SphereGeometry(.2,8,6),
+      new T.MeshBasicMaterial({color:0xef4444,transparent:true,opacity:.9,depthTest:false}));
+    m.renderOrder=10;m.position.copy(v);root.add(m);
+    var d={m:m,p:p,k:'unbolt',pr:0,done:0};p.dots.push(d);dots.push(d);
+  });
+}
+function finishRemove(p){
+  // Убрать точки
+  (p.dots||[]).forEach(function(d){if(d.m&&d.m.parent)root.remove(d.m)});
+  dots=dots.filter(function(d){return d.p!==p});
+  p.dots=[];
+  if(p.group){root.remove(p.group);p.group=null}
+  p.st=0;p.qi=0;p.queue=[];
+  tray();ghost();autoSave();
+  log('✓ Снято: '+p.s.label,'g');
+  beep(250,.08,'square',.05);
+}
+function gearUI(){var b=$('#gb');b.innerHTML='';(AU?['P','R','N','D']:['R','N','1','2','3','4','5']).forEach(g=>{var x=document.createElement('button');x.textContent=g;x.onclick=()=>{if(!canGear()){log('Собери сцепление и КПП','e');return}if(AU)S.gsel=g;else{S.prevGear=S.gm;S.gm=g=='R'?-1:g=='N'?0:+g;S.shiftT=0;}Array.from(b.children).forEach(c=>c.classList.toggle('on',c===x));beep(400)};b.appendChild(x)});b.children[AU?0:1].classList.add('on')}
+function canGear(){return['fly','clutch','gbox'].every(k=>{var p=findPart(k);return p&&p.st==2})}
+var gasBtn=$('#gas');gasBtn.addEventListener('pointerdown',e=>{e.preventDefault();S.gas=1;gasBtn.classList.add('on')},{passive:false});
+['pointerup','pointerleave','pointercancel'].forEach(ev=>gasBtn.addEventListener(ev,()=>{S.gas=0;gasBtn.classList.remove('on')}));
+var clBtn=$('#cl');clBtn.addEventListener('pointerdown',e=>{e.preventDefault();S.clToggled=S.clToggled?0:1;S.clp=S.clToggled;clBtn.classList.toggle('toggled',!!S.clToggled);beep(S.clToggled?600:400,.03)},{passive:false});
+var fb=$('#fireBtn');fb.textContent='🧯 ДЕРЖИ — ТУШИТЬ';fb.onpointerdown=function(e){e.preventDefault();S.ext=1;fb.style.transform='translateX(-50%) scale(.94)'};['pointerup','pointerleave','pointercancel'].forEach(function(ev){fb['on'+ev]=function(){S.ext=0;fb.style.transform='translateX(-50%)'}});
+$('#st').onclick=()=>{if(S.dead){log('Двигатель разрушен','e');return}if(S.run){S.run=0;S.crank=0;log('Заглушен');return}if(S.batt<12){log('🔋 АКБ разряжен — подожди, подзарядится','e');return}var need=['block','liner','crank','piston','cam','belt','hgasket','head','spark','intake','pgasket','pan','battery','starter','cables'];var m=P.filter(p=>need.indexOf(p.s.kind)>=0&&p.st<2);if(m.length){log('✗ Не готово: '+m.slice(0,2).map(p=>p.s.label).join(', '),'e');return}if(!S.tuneDone){openTune();return}snd();S.run=1;S.crank=1;S.crankT=0;var _d=Math.max(0,Math.min(1.3,(70-S.coolT)/75));S.crankNeed=.7+_d*3.5;S.crankFail=Math.random()<_d*.55;S.ranOnce=1;if(!(S.fuelL>.05&&_pn('fuelpump'))){S.crankFail=true;S.crankNeed=Math.max(S.crankNeed,2.8);log('⛽ Нет топлива/насоса — стартёр крутит, но не заводит','e')}if(S.oilL<1)log('🛢 Масла нет — красная лампа!','e');else if(S.coolL<1.5)log('💧 Мало антифриза','w');if(_d>.3)log('Холодный пуск ('+Math.round(S.coolT)+'°C)…','w');log('▶ Запуск...','g');beep(200,.1,'sawtooth',.06)};
+
+function openTune(){$('#tune').hidden=false;$('#t-sub').textContent=E?E.nm:'—';$('#t-boost').value=TUNE.boost*100|0;$('#t-adv').value=TUNE.adv;$('#t-mix').value=TUNE.mix*10|0;$('#t-lim').value=TUNE.lim;$('#t-cr').value=TUNE.cr*10|0;$('#t-mass').value=TUNE.mass;$('#t-oil').value=TUNE.oil;$('#t-fuel').value=TUNE.fuel;$('#t-season').value=SEASON;$('#t-fd').value=Math.round((TUNE.fd||4.1)*10);$('#t-wr').value=TUNE.wr||31;$('#t-idle').value=TUNE.idle||800;$('#t-resp').value=TUNE.resp||4;$('#t-th').value=TUNE.th||85;['cam','exh','air','ecu','tire','lsd'].forEach(function(k){$('#t-'+k).value=TUNE[k]||0});calcStats();$('#t-amb').value=SEASON_DATA[SEASON].temp;$('#t-repair').checked=REPAIR_MODE;$('#t-dmg').checked=DMG;$('#t-cat').checked=CAT_MODE;updateTuneUI()}
+function updateTuneUI(){TUNE.boost=+$('#t-boost').value/100;TUNE.adv=+$('#t-adv').value;TUNE.mix=+$('#t-mix').value/10;TUNE.lim=+$('#t-lim').value;TUNE.cr=+$('#t-cr').value/10;TUNE.mass=+$('#t-mass').value;TUNE.oil=+$('#t-oil').value;TUNE.fuel=+$('#t-fuel').value;SEASON=$('#t-season').value;REPAIR_MODE=$('#t-repair').checked;DMG=$('#t-dmg').checked;CAT_MODE=$('#t-cat').checked;var ct=$('#t-cattype');if(ct)CAT_TYPE=ct.value;MASS=TUNE.mass;TUNE.fd=+$('#t-fd').value/10;TUNE.wr=+$('#t-wr').value;TUNE.idle=+$('#t-idle').value;TUNE.resp=+$('#t-resp').value;var TN={cam:['стоковые','спорт','гоночные','экстрим'],exh:['стоковый','спорт','прямоток','гоночный'],air:['стоковый','нулевик','конус'],ecu:['сток','Stage 1','Stage 2','Stage 3'],tire:['обычные','спорт','полуслики','слики'],lsd:['открытый','самоблок','жёсткий']};['cam','exh','air','ecu','tire','lsd'].forEach(function(k){TUNE[k]=+$('#t-'+k).value;$('#t-'+k+'-v').textContent=TN[k][TUNE[k]]});TUNE.th=+$('#t-th').value;$('#t-th-v').textContent=TUNE.th+'°';$('#nosb').hidden=!$('#t-nos').checked;calcStats();FINAL_DRIVE=TUNE.fd;WHEEL_R=TUNE.wr/100;SEASON_DATA[SEASON].temp=+$('#t-amb').value;$('#t-fd-v').textContent=TUNE.fd.toFixed(1);$('#t-wr-v').textContent=TUNE.wr+' см';$('#t-idle-v').textContent=TUNE.idle;$('#t-resp-v').textContent=TUNE.resp;$('#t-amb-v').textContent=SEASON_DATA[SEASON].temp+'°';applySeason();$('#t-boost-v').textContent=TUNE.boost.toFixed(1)+' бар';$('#t-adv-v').textContent=TUNE.adv+'°';$('#t-mix-v').textContent=TUNE.mix.toFixed(1)+':1';$('#t-lim-v').textContent=TUNE.lim;$('#t-cr-v').textContent=TUNE.cr.toFixed(1)+':1';$('#t-mass-v').textContent=TUNE.mass+' кг';drawDyno();var hp=Math.round((E?E.hp:150)*(1+TUNE.boost*.35)*(0.85+TUNE.cr*.015));var tq=Math.round((E?E.tqPk:200)*(1+TUNE.boost*.35));$('#t-preview').innerHTML='<div class="k">Мощность</div><div class="v">'+hp+' л.с.</div><div class="k">Крутящий момент</div><div class="v">'+tq+' Нм</div>'}
+['t-boost','t-adv','t-mix','t-lim','t-cr','t-mass'].forEach(id=>$('#'+id).oninput=updateTuneUI);$('#t-dmg').onchange=updateTuneUI;['t-fd','t-wr','t-idle','t-resp','t-amb','t-th','t-cam','t-exh','t-air','t-ecu','t-tire','t-lsd'].forEach(id=>$('#'+id).oninput=updateTuneUI);$('#t-nos').onchange=updateTuneUI;$('#t-season').onchange=function(){$('#t-amb').value=SEASON_DEF[this.value];updateTuneUI()};$('#t-warm').onclick=()=>{S.coolT=85;S.oilTemp=80;log('♨ Двигатель прогрет','g')};$('#t-cool').onclick=()=>{var t=SEASON_DATA[SEASON].temp;S.coolT=t;S.oilTemp=t;log('❄ Двигатель холодный','w')};
+['t-oil','t-fuel','t-season'].forEach(id=>$('#'+id).onchange=updateTuneUI);
+$('#t-close').onclick=()=>{updateTuneUI();S.tuneDone=1;$('#tune').hidden=true;log('Настройки сохранены','g')};
+function tuneMul(){var adv=TUNE.adv||0,mix=TUNE.mix||14.7,cr=TUNE.cr||10,oct=TUNE.fuel||95,tb=findPart('turbo'),b=(tb&&tb.st==2)?TUNE.boost:0;
+var ex=(1+(TUNE.cam||0)*.02+(TUNE.exh||0)*.022+(TUNE.air||0)*.015+(TUNE.ecu||0)*.05)*(_pn('sensors')?1:.88)*(_pn('fuelfilter')?1:.9);
+return{m:(1-Math.pow((adv-8)/45,2)*.9)*(1-Math.pow((mix-13.2)/9,2)*.8)*(1+(cr-10)*.022)*ex,knock:(cr-10)*.9+b*3+(adv-8)*.25-(oct-91)*.8+(TUNE.ecu||0)*1.3+(TUNE.cam||0)*.3}}
+var KW={block:70,crank:22,piston:1.2,liner:4,cam:6,head:16,intake:7,pan:5,fly:9,clutch:7,gbox:48,exh:18,rad:9,turbo:9,tank:12,mounts:14,starter:4,alt:5,battery:12};
+function calcStats(){var el=$('#t-stats');if(!el||!E)return;var tm=tuneMul(),tb=findPart('turbo'),hasT=tb&&tb.st==2,b=hasT?TUNE.boost:0,bm=1+b*.4,red=TUNE.lim||E.redline,pk=0,pr=0,tk=0,tr=0;
+for(var r=1000;r<=red;r+=100){var c=Math.max(.25,1-Math.pow(Math.abs(r-(E.tqRpm||4000))/(E.redline*.7),1.6)),t=E.tqPk*c*bm*tm.m,h=t*r/7121;if(h>pk){pk=h;pr=r}if(t>tk){tk=t;tr=r}}
+var mass=TUNE.mass||1200,grip=.8+(TUNE.tire||0)*.14+(TUNE.lsd||0)*.04,t100=1.8*Math.pow(mass/pk,.75)*Math.pow(4.1/FINAL_DRIVE,.25)*Math.sqrt(WHEEL_R/.31)/grip,vg=red/(RT[5]*FINAL_DRIVE)*2*PI*WHEEL_R*60/1000,va=Math.cbrt(pk*625/.39)*3.6,vm=Math.min(vg,va),cons=(7+pk/40+(14.7-TUNE.mix)*.35+b*2).toFixed(1);
+var wt=0;P.forEach(function(p){if(p.st===2)wt+=(KW[p.s.kind]||2)*(p.s.kind==='gbox'&&AU?1.4:1)});
+el.innerHTML='<b>Макс. мощность:</b> '+Math.round(pk)+' л.с. ('+Math.round(pk*.7355)+' кВт) @ '+Math.round(pr)+' об/мин<br><b>Макс. момент:</b> '+Math.round(tk)+' Нм @ '+Math.round(tr)+' об/мин<br><b>Вес авто:</b> '+mass+' кг · <b>Вес сборки (мотор+КПП и т.д.):</b> ≈ '+Math.round(wt)+' кг<br><b>Удельная:</b> '+Math.round(pk/mass*1000)+' л.с./т · <b>0–100:</b> ≈ '+t100.toFixed(1)+' с<br><b>Макс. скорость:</b> ≈ '+Math.round(vm)+' км/ч (по передачам '+Math.round(vg)+') · <b>Расход:</b> ≈ '+cons+' л/100<br><b>Рекорд:</b> '+Math.round(S.pkHp||0)+' л.с. · '+Math.round(S.pkV||0)+' км/ч'+(tm.knock>0?'<br><span style="color:#ff6b6b">⚠ Риск детонации ('+tm.knock.toFixed(1)+') — выше октан или меньше буст/сжатие/угол/прошивка</span>':'')+((!hasT&&TUNE.boost>0)?'<br><span style="color:#ffd166">Буст не работает: нужна турбина</span>':'')+(!_pn('sensors')?'<br><span style="color:#ffd166">Нет датчиков: −12% мощности</span>':'')}
+function drawFluids(){var c=$('#fl');if(!c||$('#test').hidden)return;var x=c.getContext('2d');x.clearRect(0,0,330,70);x.textAlign='center';x.font='11px sans-serif';
+var fl=Math.min(1,(S.fuelL||0)/50);x.lineWidth=7;x.strokeStyle='#2a323d';x.beginPath();x.arc(55,52,34,PI,2*PI);x.stroke();x.strokeStyle=fl<.12?'#ff4d4d':'#35ff7a';x.beginPath();x.arc(55,52,34,PI,PI+PI*fl);x.stroke();var an=PI+PI*fl;x.strokeStyle='#fff';x.lineWidth=2;x.beginPath();x.moveTo(55,52);x.lineTo(55+28*Math.cos(an),52+28*Math.sin(an));x.stroke();
+x.fillStyle='#9aa4b2';x.fillText('E',18,64);x.fillText('F',92,64);x.fillStyle='#fff';x.fillText('⛽ '+(S.fuelL||0).toFixed(1)+' л',55,12);
+var ol=S.oilL||0,tip=218,xo=tip-(ol/6)*52;x.fillStyle='#9aa4b2';x.fillText('🛢 щуп '+ol.toFixed(1)+' л',168,12);x.strokeStyle='#b8bec6';x.lineWidth=2;x.beginPath();x.arc(126,38,8,0,6.283);x.stroke();x.fillStyle='#b8bec6';x.fillRect(134,36,tip-134,4);
+x.fillStyle='#4a5260';x.fillRect(tip-43,33,26,10);x.fillStyle='#ccd';x.font='9px sans-serif';x.fillText('MAX',tip-30,56);x.fillText('MIN',tip-4,56);
+if(ol>.05){var gr=x.createLinearGradient(xo,0,tip,0);gr.addColorStop(0,'#ffb347');gr.addColorStop(1,'#a06a14');x.fillStyle=gr;x.beginPath();x.moveTo(xo,35);x.lineTo(tip,35);x.lineTo(tip,41);x.lineTo(xo,41);x.quadraticCurveTo(xo-4,38,xo,35);x.fill()}
+x.font='11px sans-serif';var cl=Math.min(1,(S.coolL||0)/6);x.strokeStyle='#4a5260';x.lineWidth=2;x.strokeRect(252,16,50,44);x.fillStyle=cl<.25?'#ff4d4d':'#38bdf8';x.fillRect(253,60-44*cl,48,44*cl);x.fillStyle='#fff';x.fillText('💧 '+(S.coolL||0).toFixed(1)+' л',277,12)}
+function drawDyno(){var c=$('#dyno');if(!c||!E)return;var ctx=c.getContext('2d'),W=c.width,H=c.height;ctx.fillStyle='#0f172a';ctx.fillRect(0,0,W,H);var baseTq=E.tqPk,peakRpm=E.tqRpm,red=E.redline,boostMul=(1+((findPart('turbo')&&findPart('turbo').st==2)?TUNE.boost:0)*.4)*tuneMul().m;ctx.strokeStyle='#35ff7a';ctx.lineWidth=2;ctx.beginPath();for(var i=0;i<=40;i++){var rpm=1000+i/40*(red-1000);var t=baseTq*boostMul*Math.max(0.25,1-Math.pow(Math.abs(rpm-peakRpm)/(red*.7),1.8));var x=i/40*W,y=H-10-(t/(baseTq*1.5*boostMul))*(H-20);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke()}
+
+function openDiag(){$('#diag').hidden=false;renderDiag()}
+function renderDiag(){
+  var list=$('#d-list');if(!list)return;list.innerHTML='';
+  var broken=0;
+  P.forEach(function(p){
+    var lab=p.s.label,sk=P.filter(function(x){return x.s.kind===p.s.kind});if(sk.length>1)lab+=' '+(sk.indexOf(p)+1);var st=p.st===2?'ok':p.st===1||p.st===3?'warn':'bad';
+    var status=p.st===2?('Установлен'+(p.s.bolts&&!p.s.noBolt?' · на болтах':'')+(blockers(p).length?' · 🔒 мешает: '+blockers(p).slice(0,2).map(function(x){return x.s.label}).join(', '):'')):p.st===3?'Снимается…':p.st===1?'Ставится…':'Нет на двигателе';
+    // В ремонте/катастрофе отсутствующие = "сломано"
+    var needFix=(REPAIR_MODE||CAT_MODE)&&p.st!==2&&p.s.kind!=='block';
+    if(needFix){st='bad';status='⚠ Нужно поставить / заменить';broken++}
+    var el=document.createElement('div');el.className='item '+st;
+    el.innerHTML='<div class="info"><div>'+lab+'</div><div class="s">'+status+'</div></div>';
+    if(p.st===2){
+      var btn=document.createElement('button');btn.className='replaceBtn';btn.textContent='Открутить и снять';
+      btn.onclick=function(){
+        var bl=blockers(p);if(bl.length){log(blkMsg(bl),'e');btn.textContent='🔒 Сначала сними другое';return}if(S.run){S.run=0;S.crank=0}$('#diag').hidden=true;sel=p.s.kind;tray();startRemove(p);
+      };
+      el.appendChild(btn);
+    } else if(p.st===0 && p.s.kind!=='block'){
+      var btn=document.createElement('button');btn.className='replaceBtn new';btn.textContent='Поставить';
+      btn.onclick=function(){
+        $('#diag').hidden=true;sel=p.s.kind;tray();ghost();
+        var n=next();if(n)place(n);
+      };
+      el.appendChild(btn);
+    }
+    list.appendChild(el);
+  });
+  if(broken)log('Диагностика: проблем '+broken,'w');
+  else log('Диагностика: всё на месте','g');
+}
+
+function showFinal(){if(S._shownFinal)return;S._shownFinal=1;$('#final').hidden=false;$('#f-sub').textContent=E.nm+' · '+(AU?'АКПП':'МКПП');$('#f-stats').innerHTML='<div class="k">Мощность</div><div class="v">'+Math.round(S.hp)+' л.с.</div><div class="k">Крутящий момент</div><div class="v">'+Math.round(S.tq)+' Нм</div><div class="k">Макс. скорость</div><div class="v">'+Math.round(S.v)+' км/ч</div><div class="k">Состояние</div><div class="v">'+Math.round(S.health)+'%</div>'}
+$('#f-close').onclick=()=>$('#final').hidden=true;$('#d-close').onclick=()=>{$('#diag').hidden=true};$('#d-recheck').onclick=()=>renderDiag();$('#boom2').onclick=()=>{if(!E)return;var id=$('#cat2').value;applyCat(id,true);if(['belt_break','head_blow','oil_leak','piston_burn','crank_seize','spark_fail','injector_fail'].indexOf(id)>=0){S.run=0;S.crank=0}};
+function buildMenu(){var meEl=$('#me'),mgEl=$('#mg');meEl.innerHTML='';mgEl.innerHTML='';Object.keys(ENG).forEach(k=>{var b=document.createElement('button');b.textContent=ENG[k].nm;b.className=me===k?'on':'';b.onclick=()=>{me=k;buildMenu()};meEl.appendChild(b)});[['МКПП',0],['АКПП',1]].forEach(a=>{var b=document.createElement('button');b.textContent=a[0];b.className=mg===a[1]?'on':'';b.onclick=()=>{mg=a[1];buildMenu()};mgEl.appendChild(b)})}
+$('#go').onclick=()=>{
+  try{
+    var rep=$('#t-repair'),cat=$('#t-cat'),ct=$('#t-cattype');
+    REPAIR_MODE=!!(rep&&rep.checked);CAT_MODE=!!(cat&&cat.checked);
+    if(ct)CAT_TYPE=ct.value||'random';
+    saves.push({name:'Мотор '+(saves.length+1),eng:me,au:mg,repair:REPAIR_MODE?1:0,cat:CAT_MODE?1:0,status:'в сборке',done:0,total:0,parts:[]});
+    curIdx=saves.length-1;writeSaves(saves);
+    $('#menu').hidden=true;
+    newGame(me,mg);
+  }catch(err){addLog('err','Старт: '+(err.message||err));alert('Ошибка: '+(err.message||err))}
+};
+buildMenu();renderGarage();
+
+function drawGauge(canvas,val,max,label,dangerAt,warnAt){
+ if(!canvas)return;var ctx=canvas.getContext('2d'),cx=47.5,cy=50,r=38;
+ ctx.clearRect(0,0,95,95);
+ // фон
+ ctx.beginPath();ctx.arc(cx,cy,r,0,PI*2);ctx.fillStyle='#0a1018';ctx.fill();
+ // шкала
+ var a0=-PI*0.75,a1=PI*0.75,span=a1-a0;
+ for(var i=0;i<=10;i++){
+  var a=a0+span*(i/10),c=Math.cos(a),s=Math.sin(a);
+  var outer=r-2,inner=i%5===0?r-12:r-7;
+  ctx.beginPath();ctx.moveTo(cx+c*outer,cy+s*outer);ctx.lineTo(cx+c*inner,cy+s*inner);
+  ctx.strokeStyle=i/10>=dangerAt?'#ef4444':i/10>=warnAt?'#fbbf24':'#4a5568';ctx.lineWidth=i%5===0?2:1;ctx.stroke();
+ }
+ // цветная дуга
+ ctx.beginPath();ctx.arc(cx,cy,r-1,a0,a0+span*warnAt);ctx.strokeStyle='#35ff7a44';ctx.lineWidth=4;ctx.stroke();
+ ctx.beginPath();ctx.arc(cx,cy,r-1,a0+span*warnAt,a0+span*dangerAt);ctx.strokeStyle='#fbbf2444';ctx.lineWidth=4;ctx.stroke();
+ ctx.beginPath();ctx.arc(cx,cy,r-1,a0+span*dangerAt,a1);ctx.strokeStyle='#ef444466';ctx.lineWidth=4;ctx.stroke();
+ // стрелка
+ var t=Math.min(1,Math.max(0,val/max)),ang=a0+span*t;
+ ctx.beginPath();ctx.moveTo(cx-Math.cos(ang)*6,cy-Math.sin(ang)*6);
+ ctx.lineTo(cx+Math.cos(ang)*(r-8),cy+Math.sin(ang)*(r-8));
+ ctx.strokeStyle=t>=dangerAt?'#ef4444':t>=warnAt?'#fbbf24':'#35ff7a';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.stroke();
+ // центр
+ ctx.beginPath();ctx.arc(cx,cy,4,0,PI*2);ctx.fillStyle='#e6edf3';ctx.fill();
+ // цифры
+ ctx.fillStyle='#9aa4b2';ctx.font='bold 11px ui-monospace,monospace';ctx.textAlign='center';
+ ctx.fillText(String(Math.round(val)),cx,cy+22);
+ ctx.font='8px sans-serif';ctx.fillStyle='#6b7280';ctx.fillText(label,cx,cy+33);
+}
+function drawGauges(){
+ var red=E?E.redline:7000;
+ drawGauge($('#sp'),S.v,280,'км/ч',0.85,0.7);
+ drawGauge($('#tc'),S.rpm,red,'об/мин',0.92,0.78);
+}
+
+function updateEngine(dt){if(!E)return;var sd=SEASON_DATA[SEASON];if(S.batt===undefined)S.batt=100;if(S.run&&!S.crank){var _al=findPart('alt');if(_al&&_al.st==2&&_pn('accbelt'))S.batt=Math.min(100,S.batt+dt*3);else{S.batt-=dt*1.5;if(S.batt<=0){S.batt=0;S.run=0;S.rpm=0;log('🔋 Аккумулятор сел — нет генератора','e')}}}else if(!S.run)S.batt=Math.min(100,S.batt+dt*.8);
+if(!_pn('tank'))S.fuelL=0;if(!_pn('pan'))S.oilL=0;if(!(_pn('rad')&&_pn('coolant')))S.coolL=0;
+if(S.run&&!S.crank){var _hp=S.hp||0;S.fuelL=Math.max(0,S.fuelL-dt*12*(.00022+_hp*.00008*(14.7/Math.max(10,TUNE.mix))));S.oilL=Math.max(0,S.oilL-dt*12*.00004*(S.rpm/1000));
+ if(!_pn('oilfilter'))S.oilL=Math.max(0,S.oilL-dt*.35);
+ if(S.fuelL<=0||!_pn('fuelpump')){S.run=0;S.rpm=0;log('⛽ Двигатель встал: нет подачи топлива','e')}
+ if((S.oilL<.8||!_pn('oilpump'))&&DMG){S.oilStarve=(S.oilStarve||0)+dt;if(S.oilStarve>4){S.dead=1;S.run=0;log('💥 Масляное голодание — двигатель заклинило','e')}}else S.oilStarve=0;
+ if(S.coolL<1.5&&DMG)S.coolT=Math.min(130,S.coolT+dt*3)}S.thr+=((S.gas?1:0)-S.thr)*Math.min(1,dt*(TUNE.resp||4));if(S.run){var idle=TUNE.idle||800,red=TUNE.lim||E.redline,targetRpm=idle+S.thr*(red-idle)*.92;if(S.crank){S.crankT=(S.crankT||0)+dt;S.rpm=210+sin(S.crankT*14)*25;if(S.crankT>=(S.crankNeed||1)){S.crank=0;if(S.crankFail){S.run=0;S.rpm=0;log('✗ Не схватил: двигатель холодный. Ещё раз или прогрей','w')}else log('✓ Схватил','g')}}else S.rpm+=(targetRpm-S.rpm)*Math.min(1,dt*(S.thr>0.3?2.2:1.4));if(S.rpm>red)S.rpm=red-(S.rpm-red)*.3;var tqCurve=Math.max(0.25,1-Math.pow(Math.abs(S.rpm-(E.tqRpm||4000))/(E.redline*.7),1.6)),boostMul=1+((findPart('turbo')&&findPart('turbo').st==2)?TUNE.boost:0)*.4;var _tm=tuneMul();S.tq=E.tqPk*tqCurve*boostMul*_tm.m*(S.nos>0?1.35:1)*(.7+S.thr*.3);if(_tm.knock>0&&S.thr>.6){S.tq*=1-Math.min(.3,_tm.knock*.04);if(DMG&&_tm.knock>5)S.health-=dt*(_tm.knock-5)*.4;if(!S._kn||Date.now()-S._kn>4000){S._kn=Date.now();log('⚠ Детонация','e')}}S.hp=S.tq*S.rpm/7121;if(S.hp>(S.pkHp||0))S.pkHp=S.hp;if(Math.abs(S.v)>(S.pkV||0))S.pkV=Math.abs(S.v);if(S.nos>0)S.nos-=dt;if(S.nosCd>0)S.nosCd-=dt;var ld=S.rpm/E.redline,_rd=findPart('rad'),_cl=findPart('coolant'),_pm=findPart('pump'),radOK=_rd&&_rd.st==2&&_cl&&_cl.st==2&&_pm&&_pm.st==2&&_pn('accbelt')&&S.coolL>1.5,hin=ld*(S.thr*14+7)*(1+TUNE.boost*.25),ck=S.coolT<(TUNE.th||85)?.008:(radOK?.22:.03);S.coolT=Math.min(130,S.coolT+(hin-ck*(S.coolT-sd.temp))*dt);S.oilTemp=Math.min(145,S.oilTemp+(S.coolT-3+ld*S.thr*30-S.oilTemp)*dt*.05);S.davl=S.rpm>500?(2.5+S.rpm/3000)*(S.oilTemp>40?1:.4):0;var gear=AU?(S.gsel==='D'?3:S.gsel==='R'?-1:0):S.gm,ratio=gear>0?RT[gear]:gear<0?3.2:0;if(ratio&&!S.clp){var wheelRpm=S.rpm/(ratio*FINAL_DRIVE),targetV=Math.min(wheelRpm*2*PI*WHEEL_R*60/1000,Math.cbrt(Math.max(S.hp,15)*625/.39)*3.6);S.v+=(targetV-S.v)*Math.min(1,dt*1.2*Math.pow(1200/(MASS||1200),.9)*Math.pow(FINAL_DRIVE/4.1,.6)*(.31/WHEEL_R)*(.6+.4*S.tq/(E.tqPk||200))*(.8+(TUNE.tire||0)*.14+(TUNE.lsd||0)*.04))}else S.v*=Math.max(0,1-dt*.8);if(S.v<.5)S.v=0;S.odo+=S.v*dt/3600;if(DMG&&S.coolT>105){S.overheat+=dt;if(REPAIR_MODE||CAT_MODE)S.health-=dt*2}else S.overheat=Math.max(0,S.overheat-dt);if(DMG&&(S.overheat>8||S.health<=0)){S.dead=1;S.run=0;log('💥 Двигатель разрушен — сними детали и поставь новые','e')}
+if(S.fire){S.fireTime+=dt;if(DMG){S.health-=dt*5*(S.fireLvl||1);if(S.fireTime>12){S.dead=1;S.run=0}}}
+// Случайные катастрофы при работе (редко)
+if(DMG&&S.run&&S.rpm>2000&&Math.random()<dt*0.008){
+ var cats=['belt_break','oil_leak','rad_burst','wiring','pump_fail','spark_fail','injector_fail','alt_fail','fire'];
+ var pick=cats[Math.floor(Math.random()*cats.length)];
+ // выше шанс при перегреве / высоком бусте
+ if(S.coolT>95||TUNE.boost>1)pick=Math.random()<.4?'fire':pick;
+ applyCat(pick);
+ if(pick==='belt_break'||pick==='head_blow'||pick==='oil_leak'){S.run=0;S.crank=0}
+}for(var _i=0;_i<(S.thr>.5?3:1);_i++)if(Math.random()<.5+S.thr*.5)smokeSpawn()}else{S.rpm*=Math.max(0,1-dt*3);S.v*=Math.max(0,1-dt*1.5);S.tq=0;S.hp=0;S.davl*=.9;S.coolT+=(sd.temp-S.coolT)*dt*.004;S.oilTemp+=(sd.temp-S.oilTemp)*dt*.003}S.th+=(S.rpm/(E.redline||7000))*7.5*2*PI*dt;P.forEach(p=>{if(!p.group||p.st!==2)return;if(p.group.userData.spin){var k=p.group.userData.k||1;if(p.s.kind!=='cam'||(findPart('belt')&&findPart('belt').st===2))p.group.userData.spin.rotation.x=S.th*k}
+    if(p.group.userData.spinCam){p.group.userData.spinCam.rotation.x=S.th*0.5}
+    if(p.group.userData.belt){p.group.userData.belt.rotation.x=S.th}
+    if(p.group.userData.spin3){p.group.userData.spin3.rotation.x=-S.th*0.85}
+    // Коромысла качаются от кулачков распредвала
+    if(p.group.userData.rockers){
+      p.group.userData.rockers.forEach(function(rk,i){
+        rk.rotation.z=Math.sin(S.th*0.5+i*1.2)*0.18;
+      });
+    }
+    // Синхронизаторы сдвигаются к активной передаче
+    if(p.group.userData.syncs){var gear=AU?(S.gsel==='D'?3:0):Math.max(0,S.gm);
+      p.group.userData.syncs.forEach(function(sy,j){var off=0;if(gear===2*j+1)off=-.1;else if(gear===2*j+2)off=.1;sy.position.x+=(sy._x0+off-sy.position.x)*Math.min(1,dt*6);if(sy._fk)sy._fk.position.x=sy.position.x-sy._x0});
+    }
+    if(p.group.userData.gears){
+      var gear=AU?(S.gsel==='D'?3:0):Math.max(0,S.gm);
+      p.group.userData.gears.forEach(function(gm,i){
+        var on=(i+1)===gear;
+        if(gm.material&&gm.material.emissive)gm.material.emissive.setHex(on?0x443300:0x000000);
+      });
+    }if(p.group.userData.spin2){var gear=AU?(S.gsel==='D'?3:0):S.gm,gr=gear>0?(RT[gear]||1):0;var outR=gr?S.th/gr:0;p.group.userData.spin2.rotation.x=outR;if(p.group.userData.auRot)p.group.userData.auRot(S.th,outR);if(p.group.userData.freeG)p.group.userData.freeG.forEach(function(q){q.g.rotation.x=.875*S.th*q.k-outR})}if(p.group.userData.spin3)p.group.userData.spin3.rotation.x=-S.th*.875;
+    if(p.s.kind==='gbox'&&p.group.userData.gears){
+      if(typeof S.shiftT==='number'&&S.shiftT<1)S.shiftT=Math.min(1,S.shiftT+dt*4);
+      var active=AU?(S.gsel==='D'?3:0):Math.max(0,S.gm);
+      p.group.userData.gears.forEach(function(grMesh,i){
+        var on=(i+1)===active;
+        grMesh.position.y=on?0.02:0;
+        if(grMesh.material&&grMesh.material.emissive)grMesh.material.emissive.setHex(on?0x332200:0x000000);
+      });
+    }if(p.group.userData.upd)p.group.userData.upd(S.th)});P.forEach(p=>{if(p.group&&p.t<1){p.t=Math.min(1,p.t+dt*2.2);var ease=1-Math.pow(1-p.t,3);p.group.position.y=4.5*(1-ease);if(p.t>=1)p.group.position.y=0}});if(held&&!held.done){held.pr=Math.min(1,held.pr+dt*1.5);drawPrg(held.pr,held.k==='oil'?'#38bdf8':held.k==='unbolt'?'#ef4444':'#35ff7a');if(held.k==='bolt')clickBolt(held.pr);if(held.pr>=1)finishDot(held)}audioUpdate(dt);var rpmEl=$('#d-rpm'),spdEl=$('#d-spd'),gearEl=$('#d-gear'),coolEl=$('#d-cool'),oilEl=$('#d-oil'),davlEl=$('#d-davl'),tqEl=$('#d-tq'),hpEl=$('#d-hp');if(rpmEl){rpmEl.textContent=Math.round(S.rpm);rpmEl.className=S.rpm>(E?E.redline*.9:6000)?'bad':S.rpm>5000?'warn':'ok'}if(spdEl)spdEl.textContent=Math.round(S.v);if(gearEl)gearEl.textContent=AU?S.gsel:(S.gm===0?'N':S.gm===-1?'R':S.gm);if(coolEl){coolEl.textContent=Math.round(S.coolT)+'°';coolEl.className=S.coolT>105?'bad':S.coolT>90?'warn':'ok'}if(oilEl){oilEl.textContent=Math.round(S.oilTemp)+'°';oilEl.className=S.oilTemp>120?'bad':S.oilTemp>100?'warn':'ok'}if(davlEl)davlEl.textContent=S.davl.toFixed(1);if(tqEl)tqEl.textContent=Math.round(S.tq);if(hpEl)hpEl.textContent=Math.round(S.hp);var _e=$('#d-amb');if(_e)_e.textContent=Math.round(sd.temp)+'°';_e=$('#d-volt');if(_e){var _a=findPart('alt'),vv=S.crank?10.3-(sd.temp<0?.4:0):(S.run&&_a&&_a.st==2?14.2:11.4+1.3*S.batt/100);_e.textContent=vv.toFixed(1);_e.className=vv<11?'bad':vv<12?'warn':'ok'}_e=$('#d-load');if(_e)_e.textContent=Math.round(S.rpm/(E.redline||7000)*S.thr*100)+'%';_e=$('#d-hlt');if(_e){_e.textContent=Math.round(S.health)+'%';_e.className=S.health<40?'bad':S.health<70?'warn':'ok'}drawGauges();drawFluids();if(!S._shownFinal&&P.length&&P.filter(p=>!p.s.optional).every(p=>p.st===2)&&S.ranOnce)setTimeout(showFinal,1000)}
+
+var _erT=0;function _er(e){if(Date.now()-_erT>3000){_erT=Date.now();addLog('err','Frame: '+(e&&e.message||e))}}
+var lastT=performance.now();
+function loop(now){requestAnimationFrame(loop);var dt=Math.min(0.05,(now-lastT)/1000);lastT=now;if(PAN.x||PAN.y){var _s=dt*sph.r*.7;panOff.x+=Math.sin(sph.th)*PAN.x*_s;panOff.z+=-Math.cos(sph.th)*PAN.x*_s;panOff.y+=PAN.y*_s}var cx=TG.x+panOff.x+sph.r*Math.sin(sph.ph)*Math.cos(sph.th),cy=TG.y+panOff.y+sph.r*Math.cos(sph.ph),cz=TG.z+panOff.z+sph.r*Math.sin(sph.ph)*Math.sin(sph.th);cam.position.set(cx,cy,cz);cam.lookAt(TG.x+panOff.x,TG.y+panOff.y,TG.z+panOff.z);var w=innerWidth,h=innerHeight;if(cv.width!==w||cv.height!==h){rd.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}try{updateEngine(dt)}catch(e){_er(e)}try{updateSmoke(dt)}catch(e){_er(e)}try{updateWeather(dt)}catch(e){_er(e)}rd.render(sc,cam)}
+requestAnimationFrame(loop);
+$('#arrL').onclick=()=>$('#tray').scrollBy({left:-120,behavior:'smooth'});$('#arrR').onclick=()=>$('#tray').scrollBy({left:120,behavior:'smooth'});
+addLog('info','Engine Forge 3D loaded');
+})();
+</script>
+</body>
+</html>
